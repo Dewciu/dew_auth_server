@@ -1,0 +1,328 @@
+openapi: 3.0.0
+info:
+  title: Dew OAuth 2.0 Authorization Server
+  description: OAuth 2.0 server with PKCE, opaque tokens, client secret validation, and token introspection capabilities.
+  version: 1.0.0
+
+servers:
+  - url: https://auth.dew.com
+    description: Production server
+
+paths:
+  /authorize:
+    get:
+      summary: Authorize a client
+      description: Initiates the authorization flow with PKCE.
+      operationId: authorizeClient
+      parameters:
+        - name: response_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [code]
+            example: code
+          description: Must be `code`.
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+            example: client123
+          description: Client identifier.
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            example: https://client.example.com/callback
+          description: Must match the registered `redirect_uri` for the `client_id`.
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+            example: read write
+          description: Space-separated list of requested permissions.
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            example: xyz
+          description: Random string for CSRF protection.
+        - name: code_challenge
+          in: query
+          required: true
+          schema:
+            type: string
+            example: abc123
+          description: PKCE code challenge (hashed code verifier).
+        - name: code_challenge_method
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [S256]
+            example: S256
+          description: Must be `S256` for SHA-256 hashing.
+      responses:
+        '302':
+          description: Redirects to the client’s `redirect_uri` with the authorization code and optional state.
+          headers:
+            Location:
+              description: Redirect URL with query parameters.
+              schema:
+                type: string
+                example: https://client.example.com/callback?code=authcode123&state=xyz
+        '400':
+          description: Invalid request due to missing or invalid parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: invalid_request
+                  error_description:
+                    type: string
+                    example: The request is missing required parameters or contains invalid values.
+        '401':
+          description: Unauthorized client (e.g., invalid `client_id` or `redirect_uri`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: unauthorized_client
+                  error_description:
+                    type: string
+                    example: The client ID or redirect URI is not valid.
+
+  /token:
+    post:
+      summary: Exchange authorization code for access token
+      description: Exchanges an authorization code for an access token.
+      operationId: exchangeToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  enum: [authorization_code]
+                  example: authorization_code
+                  description: Must be `authorization_code`.
+                code:
+                  type: string
+                  example: authcode123
+                  description: The authorization code received from the `/authorize` endpoint.
+                redirect_uri:
+                  type: string
+                  example: https://client.example.com/callback
+                  description: Must match the `redirect_uri` used in the `/authorize` request.
+                client_id:
+                  type: string
+                  example: client123
+                  description: Client identifier.
+                client_secret:
+                  type: string
+                  example: supersecret
+                  description: Client secret for confidential clients.
+                code_verifier:
+                  type: string
+                  example: verifier123
+                  description: The original code verifier string for PKCE validation.
+      responses:
+        '200':
+          description: Token issued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: opaque-access-token
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  scope:
+                    type: string
+                    example: read write
+                  token_type:
+                    type: string
+                    example: Bearer
+        '400':
+          description: Invalid request due to missing or invalid parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: invalid_request
+                  error_description:
+                    type: string
+                    example: Missing required parameters.
+        '401':
+          description: Unauthorized client (e.g., invalid `client_id` or `client_secret`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: unauthorized_client
+                  error_description:
+                    type: string
+                    example: Invalid client credentials.
+        '403':
+          description: Authorization code is invalid or expired.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: invalid_grant
+                  error_description:
+                    type: string
+                    example: The authorization code is invalid, expired, or already used.
+
+  /introspect:
+    post:
+      summary: Introspect access token
+      description: Validates an access token and retrieves associated metadata.
+      operationId: introspectToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: opaque-access-token
+                  description: The access token to validate.
+                client_id:
+                  type: string
+                  example: client123
+                  description: Client identifier for authentication.
+                client_secret:
+                  type: string
+                  example: supersecret
+                  description: Client secret for confidential clients.
+      responses:
+        '200':
+          description: Token introspection response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                    example: true
+                  scope:
+                    type: string
+                    example: read write
+                  user_id:
+                    type: string
+                    example: 123
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                    example: [admin, editor]
+                  client_id:
+                    type: string
+                    example: client123
+                  exp:
+                    type: integer
+                    example: 1618321725
+        '401':
+          description: Unauthorized client (e.g., invalid `client_id` or `client_secret`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: unauthorized_client
+                  error_description:
+                    type: string
+                    example: Invalid client credentials.
+
+  /revoke:
+    post:
+      summary: Revoke access token
+      description: Revokes an access token, rendering it invalid.
+      operationId: revokeToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: opaque-access-token
+                  description: The token to revoke.
+                client_id:
+                  type: string
+                  example: client123
+                  description: Client identifier for authentication.
+                client_secret:
+                  type: string
+                  example: supersecret
+                  description: Client secret for confidential clients.
+      responses:
+        '200':
+          description: Token successfully revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Token successfully revoked
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: invalid_request
+                  error_description:
+                    type: string
+                    example: Missing or invalid parameters.
+        '401':
+          description: Unauthorized client (e.g., invalid `client_id` or `client_secret`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: unauthorized_client
+                  error_description:
+                    type: string
+                    example: Invalid client credentials.
