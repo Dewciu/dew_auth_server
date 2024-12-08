@@ -6,6 +6,9 @@ import (
 	"path"
 
 	"github.com/dewciu/dew_auth_server/server"
+	"github.com/dewciu/dew_auth_server/server/controllers"
+	"github.com/dewciu/dew_auth_server/server/repositories"
+	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
@@ -44,6 +47,35 @@ func main() {
 	}
 
 	oauthServer := server.NewOAuthServer(&serverConfig)
-	oauthServer.Configure()
+
+	repositories := getRepositories(db)
+	services := getServices(repositories)
+	controllers := getControllers(services)
+
+	oauthServer.Configure(controllers)
 	oauthServer.Run(ctx, serveAddress)
+}
+
+func getControllers(services *services.Services) *controllers.Controllers {
+	accessTokenController := controllers.NewAccessTokenController(
+		&services.AccessTokenService,
+	)
+	return &controllers.Controllers{
+		AccessTokenController: accessTokenController,
+	}
+}
+
+func getServices(repositories *repositories.Repositories) *services.Services {
+
+	accessTokenService := services.NewAccessTokenService(&repositories.AccessTokenRepository)
+	return &services.Services{
+		AccessTokenService: accessTokenService,
+	}
+}
+
+func getRepositories(db *gorm.DB) *repositories.Repositories {
+	accessTokenRepository := repositories.NewAccessTokenRepository(db)
+	return &repositories.Repositories{
+		AccessTokenRepository: accessTokenRepository,
+	}
 }

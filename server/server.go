@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/dewciu/dew_auth_server/server/controllers"
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -30,11 +31,13 @@ type OAuthServer struct {
 	router   *gin.Engine
 }
 
-func (s *OAuthServer) Configure() {
+func (s *OAuthServer) Configure(controllers *controllers.Controllers) {
 	err := s.migrate()
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to migrate database: %v", err)
 	}
+
+	s.setRoutes(controllers)
 }
 
 func (s *OAuthServer) Run(ctx context.Context, serveAddress string) {
@@ -88,4 +91,8 @@ func (s *OAuthServer) migrate() error {
 	}
 
 	return nil
+}
+
+func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
+	s.router.POST("/oauth/token", controllers.AccessTokenController.Issue)
 }
