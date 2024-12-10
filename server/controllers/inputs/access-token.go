@@ -1,8 +1,24 @@
 package inputs
 
+var _ IAccessTokenInput = new(RefreshTokenGrantInput)
+var _ IAccessTokenInput = new(AuthorizationCodeGrantInput)
+
+type IAccessTokenInput interface {
+	GetGrantType() string
+	GetClientID() string
+}
+
 type AccessTokenInput struct {
 	GrantType string `form:"grant_type" name:"grant_type" binding:"required"`
 	ClientID  string `form:"client_id" name:"client_id" binding:"required"`
+}
+
+func (i AccessTokenInput) GetGrantType() string {
+	return i.GrantType
+}
+
+func (i AccessTokenInput) GetClientID() string {
+	return i.ClientID
 }
 
 type RefreshTokenGrantInput struct {
