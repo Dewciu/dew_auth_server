@@ -1,112 +1,75 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: Dew OAuth 2.0 Authorization Server
-  description: OAuth 2.0 server with PKCE, opaque tokens, client secret validation, and token introspection capabilities.
+  title: OAuth 2.0 Authorization Server with PKCE Support
+  description: A specification for an OAuth 2.0 Authorization Server that supports Proof Key for Code Exchange (PKCE).
   version: 1.0.0
-
 servers:
+  - url: http://localhost:8050/oauth
   - url: https://auth.dew.com
-    description: Production server
-
+    description: Authorization Server Base URL
 paths:
   /authorize:
     get:
-      summary: Authorize a client
-      description: Initiates the authorization flow with PKCE.
-      operationId: authorizeClient
+      tags:
+        - Authorization
+      summary: Authorization Endpoint
+      description: Initiates the OAuth 2.0 authorization process.
       parameters:
         - name: response_type
           in: query
           required: true
+          description: Response type indicating the authorization grant type (e.g., `code` for authorization code flow).
           schema:
             type: string
             enum: [code]
-            example: code
-          description: Must be `code`.
         - name: client_id
           in: query
           required: true
+          description: Client identifier issued to the client during registration.
           schema:
             type: string
-            example: client123
-          description: Client identifier.
         - name: redirect_uri
           in: query
-          required: true
+          required: false
+          description: Redirection URI to which the response will be sent.
           schema:
             type: string
-            example: https://client.example.com/callback
-          description: Must match the registered `redirect_uri` for the `client_id`.
         - name: scope
           in: query
-          required: true
+          required: false
+          description: Space-separated list of scopes requested by the client.
           schema:
             type: string
-            example: read write
-          description: Space-separated list of requested permissions.
         - name: state
           in: query
           required: false
+          description: Opaque value used to maintain state between the request and callback.
           schema:
             type: string
-            example: xyz
-          description: Random string for CSRF protection.
         - name: code_challenge
           in: query
           required: true
+          description: PKCE code challenge derived from the code verifier.
           schema:
             type: string
-            example: abc123
-          description: PKCE code challenge (hashed code verifier).
         - name: code_challenge_method
           in: query
-          required: true
+          required: false
+          description: The method used to derive the code challenge (e.g., `S256` or `plain`).
           schema:
             type: string
-            enum: [S256]
-            example: S256
-          description: Must be `S256` for SHA-256 hashing.
+            enum: [plain, S256]
       responses:
-        '302':
-          description: Redirects to the client’s `redirect_uri` with the authorization code and optional state.
-          headers:
-            Location:
-              description: Redirect URL with query parameters.
-              schema:
-                type: string
-                example: https://client.example.com/callback?code=authcode123&state=xyz
-        '400':
-          description: Invalid request due to missing or invalid parameters.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: invalid_request
-                  error_description:
-                    type: string
-                    example: The request is missing required parameters or contains invalid values.
-        '401':
-          description: Unauthorized client (e.g., invalid `client_id` or `redirect_uri`).
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: unauthorized_client
-                  error_description:
-                    type: string
-                    example: The client ID or redirect URI is not valid.
-
+        302:
+          description: Redirect to the client's redirect URI with authorization code and state.
+        400:
+          $ref: '#/components/responses/BadRequest'
   /token:
     post:
-      summary: Exchange authorization code for access token
-      description: Exchanges an authorization code for an access token.
-      operationId: exchangeToken
+      tags:
+        - Authorization
+      summary: Token Endpoint
+      description: Exchanges an authorization code or refresh token, for an access token.
       requestBody:
         required: true
         content:
@@ -116,32 +79,32 @@ paths:
               properties:
                 grant_type:
                   type: string
-                  enum: [authorization_code]
-                  example: authorization_code
-                  description: Must be `authorization_code`.
+                  description: The type of grant being used (e.g., `authorization_code`).
+                  enum: [authorization_code, refresh_token]
                 code:
                   type: string
-                  example: authcode123
-                  description: The authorization code received from the `/authorize` endpoint.
+                  description: The authorization code received from the authorization endpoint.
                 redirect_uri:
                   type: string
-                  example: https://client.example.com/callback
-                  description: Must match the `redirect_uri` used in the `/authorize` request.
+                  description: The redirect URI used in the initial authorization request.
                 client_id:
                   type: string
-                  example: client123
-                  description: Client identifier.
+                  description: Client identifier issued to the client during registration.
                 client_secret:
                   type: string
-                  example: supersecret
-                  description: Client secret for confidential clients.
+                  description: Client secret granted after client registration (e.g., for retrieving refresh token).
+                refrest_token:
+                  type: string
+                  description: Refresh token used to obtain a new access token.
                 code_verifier:
                   type: string
-                  example: verifier123
-                  description: The original code verifier string for PKCE validation.
+                  description: PKCE code verifier used to generate the code challenge.
+              required:
+                - grant_type
+                - client_id
       responses:
-        '200':
-          description: Token issued successfully
+        200:
+          description: Access token response.
           content:
             application/json:
               schema:
@@ -149,61 +112,28 @@ paths:
                 properties:
                   access_token:
                     type: string
-                    example: opaque-access-token
-                  expires_in:
-                    type: integer
-                    example: 3600
-                  scope:
-                    type: string
-                    example: read write
+                    description: The access token issued by the authorization server.
                   token_type:
                     type: string
+                    description: The type of token issued (e.g., `Bearer`).
                     example: Bearer
-        '400':
-          description: Invalid request due to missing or invalid parameters.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
+                  expires_in:
+                    type: integer
+                    description: Lifetime in seconds of the access token.
+                  refresh_token:
                     type: string
-                    example: invalid_request
-                  error_description:
+                    description: Token used to obtain a new access token.
+                  scope:
                     type: string
-                    example: Missing required parameters.
-        '401':
-          description: Unauthorized client (e.g., invalid `client_id` or `client_secret`).
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: unauthorized_client
-                  error_description:
-                    type: string
-                    example: Invalid client credentials.
-        '403':
-          description: Authorization code is invalid or expired.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: invalid_grant
-                  error_description:
-                    type: string
-                    example: The authorization code is invalid, expired, or already used.
-
+                    description: Scopes granted by the access token.
+        400:
+          $ref: '#/components/responses/BadRequest'
   /introspect:
     post:
-      summary: Introspect access token
-      description: Validates an access token and retrieves associated metadata.
-      operationId: introspectToken
+      tags:
+        - Token Management
+      summary: Token Introspection Endpoint
+      description: Allows resource servers to validate and inspect access tokens.
       requestBody:
         required: true
         content:
@@ -213,19 +143,16 @@ paths:
               properties:
                 token:
                   type: string
-                  example: opaque-access-token
-                  description: The access token to validate.
-                client_id:
+                  description: The token to introspect.
+                token_type_hint:
                   type: string
-                  example: client123
-                  description: Client identifier for authentication.
-                client_secret:
-                  type: string
-                  example: supersecret
-                  description: Client secret for confidential clients.
+                  description: Hint about the type of token being introspected.
+                  enum: [access_token, refresh_token]
+              required:
+                - token
       responses:
-        '200':
-          description: Token introspection response
+        200:
+          description: Token introspection response.
           content:
             application/json:
               schema:
@@ -233,43 +160,27 @@ paths:
                 properties:
                   active:
                     type: boolean
-                    example: true
+                    description: Indicates whether the token is currently active.
                   scope:
                     type: string
-                    example: read write
-                  user_id:
-                    type: string
-                    example: 123
-                  roles:
-                    type: array
-                    items:
-                      type: string
-                    example: [admin, editor]
+                    description: Scopes associated with the token.
                   client_id:
                     type: string
-                    example: client123
+                    description: Client identifier associated with the token.
+                  username:
+                    type: string
+                    description: Username associated with the token.
                   exp:
                     type: integer
-                    example: 1618321725
-        '401':
-          description: Unauthorized client (e.g., invalid `client_id` or `client_secret`).
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: unauthorized_client
-                  error_description:
-                    type: string
-                    example: Invalid client credentials.
-
+                    description: Expiration time of the token.
+        400:
+          $ref: '#/components/responses/BadRequest'
   /revoke:
     post:
-      summary: Revoke access token
-      description: Revokes an access token, rendering it invalid.
-      operationId: revokeToken
+      tags:
+        - Token Management
+      summary: Token Revocation Endpoint
+      description: Allows clients to revoke access or refresh tokens.
       requestBody:
         required: true
         content:
@@ -279,50 +190,51 @@ paths:
               properties:
                 token:
                   type: string
-                  example: opaque-access-token
                   description: The token to revoke.
+                token_type_hint:
+                  type: string
+                  description: Hint about the type of token being revoked.
+                  enum: [access_token, refresh_token]
                 client_id:
                   type: string
-                  example: client123
-                  description: Client identifier for authentication.
+                  description: Client identifier.
                 client_secret:
                   type: string
-                  example: supersecret
-                  description: Client secret for confidential clients.
+                  description: Client secret for authentication.
+              required:
+                - token
       responses:
-        '200':
-          description: Token successfully revoked
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Token successfully revoked
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: invalid_request
-                  error_description:
-                    type: string
-                    example: Missing or invalid parameters.
-        '401':
-          description: Unauthorized client (e.g., invalid `client_id` or `client_secret`).
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: unauthorized_client
-                  error_description:
-                    type: string
-                    example: Invalid client credentials.
+        200:
+          description: Token successfully revoked.
+        400:
+          $ref: '#/components/responses/BadRequest'
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.dew.com/authorize
+          tokenUrl: https://auth.dew.com/token
+          scopes:
+            read: Read access to resources
+            write: Write access to resources
+  responses:
+    BadRequest:
+      description: Bad request due to invalid parameters.
+      content:
+        application/json:
+         schema:
+          type: object
+          properties:
+            error:
+             type: string
+             example: invalid_request
+            error_description:
+             type: string
+             example: The request is missing a required parameter, includes an invalid parameter value, or is otherwise malformed.
+            errors:
+             type: object
+             additionalProperties:
+              type: string
+              example: This field is required or invalid

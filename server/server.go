@@ -11,6 +11,8 @@ import (
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 )
 
@@ -94,5 +96,13 @@ func (s *OAuthServer) migrate() error {
 }
 
 func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
+	s.router.GET("../openapi.yaml", func(c *gin.Context) {
+		c.File("./openapi.yaml")
+	})
+
+	s.router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(&ginSwagger.Config{
+		URL: "/openapi.yaml", // Point to your OpenAPI specification
+	}, swaggerFiles.Handler))
+
 	s.router.POST("/oauth/token", controllers.AccessTokenController.Issue)
 }
