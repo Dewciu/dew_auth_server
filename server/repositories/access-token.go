@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"time"
 
 	"github.com/dewciu/dew_auth_server/server/models"
 	"gorm.io/gorm"
@@ -13,14 +12,11 @@ var _ IAccessTokenRepository = new(AccessTokenRepository)
 type IAccessTokenRepository interface {
 	GetWithID(ctx context.Context, id string) (*models.AccessToken, error)
 	Create(ctx context.Context, accessToken *models.AccessToken) error
-	DeleteWithID(ctx context.Context, id string) error
 	Update(ctx context.Context, accessToken *models.AccessToken) error
 	GetByToken(ctx context.Context, token string) (*models.AccessToken, error)
 	GetByUserID(ctx context.Context, userID string) ([]models.AccessToken, error)
 	GetByClientID(ctx context.Context, clientID string) ([]models.AccessToken, error)
-	DeleteExpiredTokens(ctx context.Context) error
 	GetByRefreshToken(ctx context.Context, refreshToken string) (*models.AccessToken, error)
-	DeleteByRefreshToken(ctx context.Context, refreshToken string) error
 }
 
 type AccessTokenRepository struct {
@@ -45,14 +41,6 @@ func (r *AccessTokenRepository) GetWithID(ctx context.Context, id string) (*mode
 
 func (r *AccessTokenRepository) Create(ctx context.Context, accessToken *models.AccessToken) error {
 	result := r.database.WithContext(ctx).Create(accessToken)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
-}
-
-func (r *AccessTokenRepository) DeleteWithID(ctx context.Context, id string) error {
-	result := r.database.WithContext(ctx).Where("id = ?", id).Delete(&models.AccessToken{})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -94,14 +82,6 @@ func (r *AccessTokenRepository) GetByClientID(ctx context.Context, clientID stri
 	return accessTokens, nil
 }
 
-func (r *AccessTokenRepository) DeleteExpiredTokens(ctx context.Context) error {
-	result := r.database.WithContext(ctx).Where("expires_at < ?", time.Now()).Delete(&models.AccessToken{})
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
-}
-
 func (r *AccessTokenRepository) GetByRefreshToken(ctx context.Context, refreshToken string) (*models.AccessToken, error) {
 	var accessToken models.AccessToken
 	result := r.database.WithContext(ctx).Where("refresh_token = ?", refreshToken).First(&accessToken)
@@ -109,12 +89,4 @@ func (r *AccessTokenRepository) GetByRefreshToken(ctx context.Context, refreshTo
 		return nil, result.Error
 	}
 	return &accessToken, nil
-}
-
-func (r *AccessTokenRepository) DeleteByRefreshToken(ctx context.Context, refreshToken string) error {
-	result := r.database.WithContext(ctx).Where("refresh_token = ?", refreshToken).Delete(&models.AccessToken{})
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
 }

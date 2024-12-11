@@ -14,12 +14,12 @@ type IAccessTokenService interface {
 }
 
 type AccessTokenService struct {
-	repository repositories.IAccessTokenRepository
+	accessTokenRepository repositories.IAccessTokenRepository
 }
 
-func NewAccessTokenService(repository repositories.IAccessTokenRepository) AccessTokenService {
+func NewAccessTokenService(accessTokenRepository repositories.IAccessTokenRepository) AccessTokenService {
 	return AccessTokenService{
-		repository: repository,
+		accessTokenRepository: accessTokenRepository,
 	}
 }
 
