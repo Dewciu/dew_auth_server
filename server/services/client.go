@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 
+	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/repositories"
 )
 
 var _ IClientService = new(ClientService)
 
 type IClientService interface {
-	VerifyClient(ctx context.Context, clientID string) (bool, error)
+	VerifyClient(ctx context.Context, clientID string, clientSecret string) (*models.Client, error)
 }
 
 type ClientService struct {
@@ -23,13 +24,23 @@ func NewClientService(clientRepository repositories.IClientRepository) ClientSer
 	}
 }
 
-func (s *ClientService) VerifyClient(ctx context.Context, clientID string) (bool, error) {
+func (s *ClientService) VerifyClient(
+	ctx context.Context,
+	clientID string,
+	clientSecret string,
+) (*models.Client, error) {
 	client, err := s.clientRepository.GetWithID(ctx, clientID)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	if client == nil {
-		return false, errors.New("client not found")
+		return nil, errors.New("client not found")
 	}
-	return true, nil
+
+	//TODO: client secret should be hashed in database
+	if client.Secret != clientSecret {
+		return nil, errors.New("invalid client secret")
+	}
+
+	return client, nil
 }
