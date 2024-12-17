@@ -20,6 +20,7 @@ import (
 const (
 	serveAddressEnvVar    = "HTTP_SERVE_ADDRESS"
 	dbConnectionURLEnvVar = "DATABASE_CONNECTION_URL"
+	templatePathEnvVar    = "TEMPLATE_PATH"
 )
 
 func main() {
@@ -33,6 +34,7 @@ func main() {
 	var (
 		serveAddress    = os.Getenv(serveAddressEnvVar)
 		dbConnectionURL = os.Getenv(dbConnectionURLEnvVar)
+		templatePath    = os.Getenv(templatePathEnvVar)
 	)
 
 	router := gin.New()
@@ -52,17 +54,20 @@ func main() {
 	repositories := getRepositories(db)
 	services := getServices(repositories)
 	handlers := getHandlers(services)
-	controllers := getControllers(handlers)
+	controllers := getControllers(templatePath, handlers)
 
 	oauthServer.Configure(controllers)
 	oauthServer.Run(ctx, serveAddress)
 }
 
-func getControllers(handlers *handlers.Handlers) *controllers.Controllers {
+func getControllers(templatePath string, handlers *handlers.Handlers) *controllers.Controllers {
 	accessTokenController := controllers.NewAccessTokenController(
 		handlers.AuthorizationCodeGrantHandler,
 	)
-	registerController := controllers.NewRegisterController()
+	registerController := controllers.NewRegisterController(
+		templatePath,
+		handlers.RegisterHandler,
+	)
 	return &controllers.Controllers{
 		AccessTokenController: accessTokenController,
 		RegisterController:    registerController,
@@ -76,6 +81,9 @@ func getHandlers(services *services.Services) *handlers.Handlers {
 			services.ClientService,
 			services.AuthorizationCodeService,
 			services.RefreshTokenService,
+		),
+		RegisterHandler: handlers.NewRegisterHandler(
+			services.ClientService,
 		),
 	}
 }
