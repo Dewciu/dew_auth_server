@@ -7,6 +7,7 @@ import (
 
 	"github.com/dewciu/dew_auth_server/server"
 	"github.com/dewciu/dew_auth_server/server/controllers"
+	"github.com/dewciu/dew_auth_server/server/handlers"
 	"github.com/dewciu/dew_auth_server/server/repositories"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
@@ -50,32 +51,58 @@ func main() {
 
 	repositories := getRepositories(db)
 	services := getServices(repositories)
-	controllers := getControllers(services)
+	handlers := getHandlers(services)
+	controllers := getControllers(handlers)
 
 	oauthServer.Configure(controllers)
 	oauthServer.Run(ctx, serveAddress)
 }
 
-func getControllers(services *services.Services) *controllers.Controllers {
+func getControllers(handlers *handlers.Handlers) *controllers.Controllers {
 	accessTokenController := controllers.NewAccessTokenController(
-		&services.AccessTokenService,
+		handlers.AuthorizationCodeGrantHandler,
 	)
 	return &controllers.Controllers{
 		AccessTokenController: accessTokenController,
 	}
 }
 
+func getHandlers(services *services.Services) *handlers.Handlers {
+	return &handlers.Handlers{
+		AuthorizationCodeGrantHandler: handlers.NewAuthorizationCodeGrantHandler(
+			services.AccessTokenService,
+			services.ClientService,
+			services.AuthorizationCodeService,
+			services.RefreshTokenService,
+		),
+	}
+}
+
 func getServices(repositories *repositories.Repositories) *services.Services {
 
-	accessTokenService := services.NewAccessTokenService(&repositories.AccessTokenRepository)
+	accessTokenService := services.NewAccessTokenService(repositories.AccessTokenRepository)
+	clientService := services.NewClientService(repositories.ClientRepository)
+	authorizationCodeService := services.NewAuthorizationCodeService(repositories.AuthorizationCodeRepository)
+	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
+
 	return &services.Services{
-		AccessTokenService: accessTokenService,
+		AccessTokenService:       &accessTokenService,
+		ClientService:            &clientService,
+		AuthorizationCodeService: &authorizationCodeService,
+		RefreshTokenService:      &refreshTokenService,
 	}
 }
 
 func getRepositories(db *gorm.DB) *repositories.Repositories {
 	accessTokenRepository := repositories.NewAccessTokenRepository(db)
+	clientRepository := repositories.NewClientRepository(db)
+	authorizationCodeRepository := repositories.NewAuthorizationCodeRepository(db)
+	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
+
 	return &repositories.Repositories{
-		AccessTokenRepository: accessTokenRepository,
+		AccessTokenRepository:       accessTokenRepository,
+		ClientRepository:            clientRepository,
+		AuthorizationCodeRepository: authorizationCodeRepository,
+		RefreshTokenRepository:      refreshTokenRepository,
 	}
 }

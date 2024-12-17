@@ -22,8 +22,8 @@ type AuthorizationCodeRepository struct {
 	database *gorm.DB
 }
 
-func NewAuthorizationCodeRepository(database *gorm.DB) AuthorizationCodeRepository {
-	return AuthorizationCodeRepository{
+func NewAuthorizationCodeRepository(database *gorm.DB) IAuthorizationCodeRepository {
+	return &AuthorizationCodeRepository{
 		database: database,
 	}
 }

@@ -1,6 +1,5 @@
 package outputs
 
-var _ IAccessTokenOutput = new(RefreshTokenGrantOutput)
 var _ IAccessTokenOutput = new(AuthorizationCodeGrantOutput)
 
 type IAccessTokenOutput interface {
@@ -33,14 +32,7 @@ func (i AccessTokenOutput) GetScope() string {
 	return i.Scope
 }
 
-type RefreshTokenGrantOutput struct {
-	AccessTokenOutput
-	RefreshToken string `form:"refresh_token" name:"refresh_token" binding:"required"`
-}
-
 type AuthorizationCodeGrantOutput struct {
 	AccessTokenOutput
-	RedirectURI  string `form:"redirect_uri" name:"redirect_uri" binding:"required,url"`
-	Code         string `form:"code" name:"code" binding:"required"`
-	CodeVerifier string `form:"code_verifier" name:"code_verifier" binding:"required,min=43,max=128"`
+	RefreshToken string `form:"refresh_token" name:"refresh_token" binding:"required"`
 }

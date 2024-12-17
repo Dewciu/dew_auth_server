@@ -1,5 +1,8 @@
 package services
 
 type Services struct {
-	AccessTokenService AccessTokenService
+	AccessTokenService       IAccessTokenService
+	AuthorizationCodeService IAuthorizationCodeService
+	RefreshTokenService      IRefreshTokenService
+	ClientService            IClientService
 }

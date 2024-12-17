@@ -23,8 +23,8 @@ type AccessTokenRepository struct {
 	database *gorm.DB
 }
 
-func NewAccessTokenRepository(database *gorm.DB) AccessTokenRepository {
-	return AccessTokenRepository{
+func NewAccessTokenRepository(database *gorm.DB) IAccessTokenRepository {
+	return &AccessTokenRepository{
 		database: database,
 	}
 }

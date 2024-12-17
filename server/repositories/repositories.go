@@ -1,5 +1,8 @@
 package repositories
 
 type Repositories struct {
-	AccessTokenRepository AccessTokenRepository
+	AccessTokenRepository       IAccessTokenRepository
+	AuthorizationCodeRepository IAuthorizationCodeRepository
+	ClientRepository            IClientRepository
+	RefreshTokenRepository      IRefreshTokenRepository
 }

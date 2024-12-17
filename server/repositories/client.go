@@ -20,8 +20,8 @@ type ClientRepository struct {
 	database *gorm.DB
 }
 
-func NewClientRepository(database *gorm.DB) ClientRepository {
-	return ClientRepository{
+func NewClientRepository(database *gorm.DB) IClientRepository {
+	return &ClientRepository{
 		database: database,
 	}
 }
