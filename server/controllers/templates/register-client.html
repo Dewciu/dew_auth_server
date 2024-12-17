@@ -37,7 +37,8 @@
         }
         input[type="text"],
         input[type="password"],
-        input[type="email"] {
+        input[type="email"],
+        input[type="url"] {
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
@@ -69,6 +70,25 @@
             margin-bottom: 10px;
             text-align: center;
         }
+        .client-info {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .client-info p {
+            margin: 5px 0;
+            font-weight: bold;
+            color: #333;
+        }
+        .client-info span {
+            display: block;
+            background: #e9ecef;
+            padding: 5px;
+            border-radius: 4px;
+            word-break: break-all;
+            font-weight: normal;
+        }
     </style>
 </head>
 <body>
@@ -79,6 +99,10 @@
         {{end}}
         {{if .Success}}
         <div class="success">{{.Success}}</div>
+        <div class="client-info">
+            <p>Client ID: <span>{{.ClientID}}</span></p>
+            <p>Client Secret: <span>{{.ClientSecret}}</span></p>
+        </div>
         {{end}}
         <form method="POST" action="/oauth/register">
             <label for="client_name">Client Name</label>
@@ -87,8 +111,8 @@
             <label for="client_email">Email</label>
             <input type="email" id="client_email" name="client_email" required />
 
-            <label for="client_secret">Client Secret</label>
-            <input type="text" id="client_secret" name="client_secret" required />
+            <label for="client_redirect_url">Redirect URL</label>
+            <input type="url" id="client_redirect_url" name="client_redirect_url" required />
 
             <button type="submit">Register</button>
         </form>

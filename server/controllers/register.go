@@ -42,10 +42,9 @@ func (rc *RegisterController) handlePost(c *gin.Context) {
 
 	clientName := strings.TrimSpace(c.Request.Form.Get("client_name"))
 	clientEmail := strings.TrimSpace(c.Request.Form.Get("client_email"))
-	clientSecret := strings.TrimSpace(c.Request.Form.Get("client_secret"))
 
 	// Simple validation
-	if clientName == "" || clientEmail == "" || clientSecret == "" {
+	if clientName == "" || clientEmail == "" {
 		rc.tmpl.Execute(c.Writer, map[string]string{"Error": "All fields are required"})
 		return
 	}
@@ -53,5 +52,9 @@ func (rc *RegisterController) handlePost(c *gin.Context) {
 	// Example: Store the client info in the database/repository (Not implemented here)
 	// repository.CreateClient(clientName, clientEmail, clientSecret)
 
-	rc.tmpl.Execute(c.Writer, map[string]string{"Success": "Client registered successfully!"})
+	rc.tmpl.Execute(c.Writer, map[string]string{
+		"Success":      "Client registered successfully!",
+		"ClientID":     "testId",
+		"ClientSecret": "testSecret",
+	})
 }
