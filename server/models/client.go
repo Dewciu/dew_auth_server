@@ -7,4 +7,6 @@ type Client struct {
 	GrantTypes    string `gorm:"type:text;not null"`         // Comma-separated grant types
 	ResponseTypes string `gorm:"type:text;not null"`         // Comma-separated response types
 	Scopes        string `gorm:"type:text;not null"`         // Comma-separated scopes
+	ContactEmail  string `gorm:"type:varchar(255);not null"` // Contact email
+	Name          string `gorm:"type:varchar(255);not null"` // Client name
 }

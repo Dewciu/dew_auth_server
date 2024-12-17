@@ -62,8 +62,10 @@ func getControllers(handlers *handlers.Handlers) *controllers.Controllers {
 	accessTokenController := controllers.NewAccessTokenController(
 		handlers.AuthorizationCodeGrantHandler,
 	)
+	registerController := controllers.NewRegisterController()
 	return &controllers.Controllers{
 		AccessTokenController: accessTokenController,
+		RegisterController:    registerController,
 	}
 }
 
