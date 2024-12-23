@@ -49,6 +49,10 @@ func (s *AuthorizationCodeService) ValidateCode(ctx context.Context, code string
 
 	currentTime := time.Now()
 
+	if codeDetails.Used {
+		return nil, errors.New("authorization code already used")
+	}
+
 	if codeDetails.ExpiresAt.Before(currentTime) {
 		return nil, errors.New("authorization code expired")
 	}
@@ -60,7 +64,7 @@ func (s *AuthorizationCodeService) ValidateCode(ctx context.Context, code string
 	if codeDetails.ClientID.String() != clientID {
 		return nil, errors.New("provided client ID does not match the ID associated with authorization code")
 	}
-	// Implement code validation logic
+
 	return codeDetails, nil
 }
 
