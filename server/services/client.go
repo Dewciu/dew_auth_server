@@ -3,9 +3,9 @@ package services
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"fmt"
 
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/repositories"
@@ -96,9 +96,11 @@ func (s *ClientService) RegisterClient(
 		return nil, err
 	}
 
+	b64clientSecret := base64.StdEncoding.EncodeToString([]byte(clientSecret))
+
 	client := &models.Client{
 		Name:          clientName,
-		Secret:        clientSecret,
+		Secret:        b64clientSecret,
 		ContactEmail:  email,
 		RedirectURI:   redirectUri,
 		Scopes:        scopes,
@@ -112,7 +114,7 @@ func (s *ClientService) RegisterClient(
 		return nil, err
 	}
 
-	fmt.Println(client.ID)
+	client.Secret = clientSecret
 
 	return client, nil
 }
