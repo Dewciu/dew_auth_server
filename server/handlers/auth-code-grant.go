@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"errors"
+	"strings"
 
+	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
 	"github.com/dewciu/dew_auth_server/server/services"
@@ -37,15 +39,29 @@ func NewAuthorizationCodeGrantHandler(
 	}
 }
 
+//TODO: Consider refactoring things using goroutines and channels.
+
 func (h *AuthorizationCodeGrantHandler) Handle(input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error) {
 	var output *outputs.AuthorizationCodeGrantOutput
 	ctx := context.Background()
 
-	client, err := h.clientService.VerifyClient(ctx, input.ClientID, input.ClientSecret)
+	client, err := h.clientService.VerifyClientSecret(ctx, input.ClientID, input.ClientSecret)
 
 	if err != nil {
 		e := errors.New("client verification failed")
 		logrus.WithError(err).Error(e)
+		return nil, e
+	}
+
+	if !strings.Contains(client.GrantTypes, input.GrantType) {
+		e := errors.New("grant type not allowed")
+		logrus.Error(e)
+		return nil, e
+	}
+
+	if !strings.Contains(client.ResponseTypes, string(constants.TokenResponseType)) {
+		e := errors.New("response type not allowed")
+		logrus.Error(e)
 		return nil, e
 	}
 
@@ -60,6 +76,8 @@ func (h *AuthorizationCodeGrantHandler) Handle(input inputs.AuthorizationCodeGra
 	if err := h.authCodeService.ValidatePKCE(input.CodeVerifier, codeDetails.CodeChallenge, codeDetails.CodeChallengeMethod); err != nil {
 		return nil, err
 	}
+
+	//TODO: Times and lengths need to be configurable.
 
 	accessTokenDetails, err := h.accessTokenService.CreateAccessToken(
 		ctx,

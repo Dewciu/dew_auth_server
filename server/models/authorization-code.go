@@ -16,6 +16,7 @@ type AuthorizationCode struct {
 	Scope               string
 	CodeChallenge       string
 	CodeChallengeMethod string
+	Used                bool      `gorm:"not null;default:false"`
 	ExpiresAt           time.Time `gorm:"not null"`
 	User                User      `gorm:"foreignKey:UserID"`
 	Client              Client    `gorm:"foreignKey:ClientID"`

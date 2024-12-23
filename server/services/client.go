@@ -14,7 +14,7 @@ import (
 var _ IClientService = new(ClientService)
 
 type IClientService interface {
-	VerifyClient(ctx context.Context, clientID string, clientSecret string) (*models.Client, error)
+	VerifyClientSecret(ctx context.Context, clientID string, clientSecret string) (*models.Client, error)
 	CheckIfClientExists(ctx context.Context, clientName string) (bool, error)
 	RegisterClient(
 		ctx context.Context,
@@ -37,7 +37,7 @@ func NewClientService(clientRepository repositories.IClientRepository) ClientSer
 	}
 }
 
-func (s *ClientService) VerifyClient(
+func (s *ClientService) VerifyClientSecret(
 	ctx context.Context,
 	clientID string,
 	clientSecret string,

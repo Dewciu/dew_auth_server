@@ -8,6 +8,7 @@ import (
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/handlers"
+	"github.com/dewciu/dew_auth_server/server/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -61,26 +62,24 @@ func (rc *ClientRegisterController) handlePost(c *gin.Context) {
 		}
 	}
 
-	//TODO: Better composing of response_types, grant_types, and scopes, now it contains empty strings
-
-	response_types := []string{
+	response_types := utils.RemoveEmptyStrings([]string{
 		c.Request.Form.Get("token_response_type"),
 		c.Request.Form.Get("code_response_type"),
-	}
+	})
 
-	grant_types := []string{
+	grant_types := utils.RemoveEmptyStrings([]string{
 		c.Request.Form.Get("authorization_code_grant_type"),
 		c.Request.Form.Get("client_credentials_grant_type"),
 		c.Request.Form.Get("refresh_token_grant_type"),
 		c.Request.Form.Get("password_grant_type"),
 		c.Request.Form.Get("implicit_grant_type"),
-	}
+	})
 
-	scopes := []string{
+	scopes := utils.RemoveEmptyStrings([]string{
 		c.Request.Form.Get("read_scope"),
 		c.Request.Form.Get("write_scope"),
 		c.Request.Form.Get("delete_scope"),
-	}
+	})
 
 	clientRegisterInput := inputs.ClientRegisterInput{
 		ClientName:    required_form_inputs["client_name"].(string),
