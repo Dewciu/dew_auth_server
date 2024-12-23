@@ -15,7 +15,8 @@ var _ IClientService = new(ClientService)
 
 type IClientService interface {
 	VerifyClientSecret(ctx context.Context, clientID string, clientSecret string) (*models.Client, error)
-	CheckIfClientExists(ctx context.Context, clientName string) (bool, error)
+	CheckIfClientExistsByName(ctx context.Context, clientName string) (*models.Client, error)
+	CheckIfClientExistsByID(ctx context.Context, clientID string) (*models.Client, error)
 	RegisterClient(
 		ctx context.Context,
 		clientName string,
@@ -58,19 +59,34 @@ func (s *ClientService) VerifyClientSecret(
 	return client, nil
 }
 
-func (s *ClientService) CheckIfClientExists(
+func (s *ClientService) CheckIfClientExistsByName(
 	ctx context.Context,
 	clientName string,
-) (bool, error) {
+) (*models.Client, error) {
 	client, err := s.clientRepository.GetWithName(ctx, clientName)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	if client == nil {
-		return false, nil
+		return nil, errors.New("client not found")
 	}
 
-	return true, nil
+	return client, nil
+}
+
+func (s *ClientService) CheckIfClientExistsByID(
+	ctx context.Context,
+	clientID string,
+) (*models.Client, error) {
+	client, err := s.clientRepository.GetWithID(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+	if client == nil {
+		return nil, errors.New("client not found")
+	}
+
+	return client, nil
 }
 
 func (s *ClientService) GenerateClientSecret(length int) (string, error) {

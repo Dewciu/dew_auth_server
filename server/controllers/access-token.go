@@ -42,26 +42,6 @@ func (atc *AccessTokenController) Issue(c *gin.Context) {
 	}
 }
 
-func handleParseError(c *gin.Context, err error, input interface{}) {
-	logrus.WithError(err).Error("Failed to parse common access token input")
-
-	var ve validator.ValidationErrors
-	if errors.As(err, &ve) {
-		c.JSON(http.StatusBadRequest, outputs.ValidationErrorResponse(
-			string(constants.InvalidRequest),
-			"There are validation errors in your request.",
-			ve,
-			input,
-		))
-		return
-	}
-
-	c.JSON(http.StatusBadRequest, outputs.ErrorResponse(
-		string(constants.InvalidRequest),
-		fmt.Sprintf("Unable to parse access token request: %v", err),
-	))
-}
-
 func (atc AccessTokenController) handleAuthorizationCodeGrant(c *gin.Context) {
 	var authCodeGrantInput inputs.AuthorizationCodeGrantInput
 	if err := c.ShouldBind(&authCodeGrantInput); err != nil {

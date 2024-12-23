@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
@@ -16,6 +17,13 @@ var _ IAuthorizationCodeService = new(AuthorizationCodeService)
 
 type IAuthorizationCodeService interface {
 	GenerateCode(ctx context.Context) (string, error)
+	GenerateCodeWithPKCE(
+		ctx context.Context,
+		client *models.Client,
+		user *models.User,
+		codeChallenge string,
+		codeChallengeMethod string,
+	) (string, error)
 	ValidateCode(ctx context.Context, code string, redirectUri string, clientID string) (*models.AuthorizationCode, error)
 	ValidatePKCE(codeVerifier, codeChallenge, codeChallengeMethod string) error
 	SetCodeAsUsed(ctx context.Context, codeModel *models.AuthorizationCode) error
@@ -32,8 +40,53 @@ func NewAuthorizationCodeService(authorizationCodeRepository repositories.IAutho
 }
 
 func (s *AuthorizationCodeService) GenerateCode(ctx context.Context) (string, error) {
-	// Implement code generation logic
-	return "generated_authorization_code", nil
+	code, err := generateRandomString(32)
+	if err != nil {
+		return "", err
+	}
+
+	// Save the code in the repository
+	err = s.authorizationCodeRepository.Create(ctx, &models.AuthorizationCode{
+		Code:      code,
+		ExpiresAt: time.Now().Add(10 * time.Minute), // Set appropriate expiration time
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return code, nil
+}
+
+func (s *AuthorizationCodeService) GenerateCodeWithPKCE(
+	ctx context.Context,
+	client *models.Client,
+	user *models.User,
+	codeChallenge string,
+	codeChallengeMethod string,
+) (string, error) {
+	if codeChallenge == "" || codeChallengeMethod == "" {
+		return "", errors.New("code challenge and code challenge method are required")
+	}
+
+	code, err := generateRandomString(32)
+	if err != nil {
+		return "", err
+	}
+
+	//TODO: Expiration times from config
+	err = s.authorizationCodeRepository.Create(ctx, &models.AuthorizationCode{
+		User:                *user,
+		Client:              *client,
+		Code:                code,
+		CodeChallenge:       codeChallenge,
+		CodeChallengeMethod: codeChallengeMethod,
+		ExpiresAt:           time.Now().Add(10 * time.Minute), // Set appropriate expiration time
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return code, nil
 }
 
 func (s *AuthorizationCodeService) ValidateCode(ctx context.Context, code string, redirectUri string, clientID string) (*models.AuthorizationCode, error) {
@@ -42,7 +95,6 @@ func (s *AuthorizationCodeService) ValidateCode(ctx context.Context, code string
 	}
 
 	codeDetails, err := s.authorizationCodeRepository.GetByCode(ctx, code)
-
 	if err != nil {
 		return nil, err
 	}
@@ -98,4 +150,13 @@ func (s *AuthorizationCodeService) ValidatePKCE(codeVerifier, codeChallenge, cod
 func (s *AuthorizationCodeService) SetCodeAsUsed(ctx context.Context, codeModel *models.AuthorizationCode) error {
 	codeModel.Used = true
 	return s.authorizationCodeRepository.Update(ctx, codeModel)
+}
+
+func generateRandomString(length int) (string, error) {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }

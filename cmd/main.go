@@ -68,9 +68,13 @@ func getControllers(templatePath string, handlers *handlers.Handlers) *controlle
 		templatePath,
 		handlers.RegisterHandler,
 	)
+	authorizationController := controllers.NewAuthorizationController(
+		handlers.AuthorizationHandler,
+	)
 	return &controllers.Controllers{
-		AccessTokenController: accessTokenController,
-		RegisterController:    registerController,
+		AccessTokenController:   accessTokenController,
+		RegisterController:      registerController,
+		AuthorizationController: authorizationController,
 	}
 }
 
@@ -85,6 +89,11 @@ func getHandlers(services *services.Services) *handlers.Handlers {
 		RegisterHandler: handlers.NewRegisterHandler(
 			services.ClientService,
 		),
+		AuthorizationHandler: handlers.NewAuthorizationHandler(
+			services.ClientService,
+			services.AuthorizationCodeService,
+			services.UserService,
+		),
 	}
 }
 
@@ -94,12 +103,14 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 	clientService := services.NewClientService(repositories.ClientRepository)
 	authorizationCodeService := services.NewAuthorizationCodeService(repositories.AuthorizationCodeRepository)
 	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
+	userService := services.NewUserService(repositories.UserRepository)
 
 	return &services.Services{
 		AccessTokenService:       &accessTokenService,
 		ClientService:            &clientService,
 		AuthorizationCodeService: &authorizationCodeService,
 		RefreshTokenService:      &refreshTokenService,
+		UserService:              &userService,
 	}
 }
 
@@ -108,11 +119,13 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 	clientRepository := repositories.NewClientRepository(db)
 	authorizationCodeRepository := repositories.NewAuthorizationCodeRepository(db)
 	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
+	userRepository := repositories.NewUserRepository(db)
 
 	return &repositories.Repositories{
 		AccessTokenRepository:       accessTokenRepository,
 		ClientRepository:            clientRepository,
 		AuthorizationCodeRepository: authorizationCodeRepository,
 		RefreshTokenRepository:      refreshTokenRepository,
+		UserRepository:              userRepository,
 	}
 }

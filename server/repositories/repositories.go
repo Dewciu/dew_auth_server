@@ -5,4 +5,5 @@ type Repositories struct {
 	AuthorizationCodeRepository IAuthorizationCodeRepository
 	ClientRepository            IClientRepository
 	RefreshTokenRepository      IRefreshTokenRepository
+	UserRepository              IUserRepository
 }

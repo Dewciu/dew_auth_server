@@ -105,6 +105,7 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	}, swaggerFiles.Handler))
 
 	s.router.POST("/oauth/token", controllers.AccessTokenController.Issue)
+	s.router.GET("/oauth/authorize", controllers.AuthorizationController.Authorize)
 	s.router.GET("/oauth/register", controllers.RegisterController.RegisterHandler)
 	s.router.POST("/oauth/register", controllers.RegisterController.RegisterHandler)
 }

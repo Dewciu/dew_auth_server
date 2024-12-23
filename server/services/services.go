@@ -5,4 +5,5 @@ type Services struct {
 	AuthorizationCodeService IAuthorizationCodeService
 	RefreshTokenService      IRefreshTokenService
 	ClientService            IClientService
+	UserService              IUserService
 }
