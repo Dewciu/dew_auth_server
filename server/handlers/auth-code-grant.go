@@ -109,6 +109,14 @@ func (h *AuthorizationCodeGrantHandler) Handle(input inputs.AuthorizationCodeGra
 		return nil, e
 	}
 
+	err = h.authCodeService.SetCodeAsUsed(ctx, codeDetails)
+
+	if err != nil {
+		e := errors.New("auth code update failed")
+		logrus.WithError(err).Error(e)
+		return nil, e
+	}
+
 	output = &outputs.AuthorizationCodeGrantOutput{
 		AccessTokenOutput: *accessTokenDetails,
 		RefreshToken:      refreshToken,

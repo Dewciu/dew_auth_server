@@ -18,6 +18,7 @@ type IAuthorizationCodeService interface {
 	GenerateCode(ctx context.Context) (string, error)
 	ValidateCode(ctx context.Context, code string, redirectUri string, clientID string) (*models.AuthorizationCode, error)
 	ValidatePKCE(codeVerifier, codeChallenge, codeChallengeMethod string) error
+	SetCodeAsUsed(ctx context.Context, codeModel *models.AuthorizationCode) error
 }
 
 type AuthorizationCodeService struct {
@@ -88,4 +89,9 @@ func (s *AuthorizationCodeService) ValidatePKCE(codeVerifier, codeChallenge, cod
 	}
 
 	return nil
+}
+
+func (s *AuthorizationCodeService) SetCodeAsUsed(ctx context.Context, codeModel *models.AuthorizationCode) error {
+	codeModel.Used = true
+	return s.authorizationCodeRepository.Update(ctx, codeModel)
 }
