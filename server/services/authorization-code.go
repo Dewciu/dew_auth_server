@@ -11,6 +11,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/repositories"
+	"github.com/google/uuid"
 )
 
 var _ IAuthorizationCodeService = new(AuthorizationCodeService)
@@ -20,7 +21,8 @@ type IAuthorizationCodeService interface {
 	GenerateCodeWithPKCE(
 		ctx context.Context,
 		client *models.Client,
-		user *models.User,
+		userID string,
+		redirectURI string,
 		codeChallenge string,
 		codeChallengeMethod string,
 	) (string, error)
@@ -60,7 +62,8 @@ func (s *AuthorizationCodeService) GenerateCode(ctx context.Context) (string, er
 func (s *AuthorizationCodeService) GenerateCodeWithPKCE(
 	ctx context.Context,
 	client *models.Client,
-	user *models.User,
+	userID string,
+	redirectURI string,
 	codeChallenge string,
 	codeChallengeMethod string,
 ) (string, error) {
@@ -75,8 +78,9 @@ func (s *AuthorizationCodeService) GenerateCodeWithPKCE(
 
 	//TODO: Expiration times from config
 	err = s.authorizationCodeRepository.Create(ctx, &models.AuthorizationCode{
-		User:                *user,
+		UserID:              uuid.MustParse(userID),
 		Client:              *client,
+		RedirectURI:         redirectURI,
 		Code:                code,
 		CodeChallenge:       codeChallenge,
 		CodeChallengeMethod: codeChallengeMethod,
@@ -89,7 +93,12 @@ func (s *AuthorizationCodeService) GenerateCodeWithPKCE(
 	return code, nil
 }
 
-func (s *AuthorizationCodeService) ValidateCode(ctx context.Context, code string, redirectUri string, clientID string) (*models.AuthorizationCode, error) {
+func (s *AuthorizationCodeService) ValidateCode(
+	ctx context.Context,
+	code string,
+	redirectUri string,
+	clientID string,
+) (*models.AuthorizationCode, error) {
 	if code == "" {
 		return nil, errors.New("code is required")
 	}

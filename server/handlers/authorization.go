@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"context"
 	"errors"
 	"strings"
 
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
+	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/sirupsen/logrus"
 )
@@ -14,52 +14,69 @@ import (
 var _ IAuthorizationHandler = new(AuthorizationHandler)
 
 type IAuthorizationHandler interface {
-	Handle(input inputs.AuthorizationInput) error
+	Handle(ctx AuthContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error)
 }
 
 type AuthorizationHandler struct {
 	clientService   services.IClientService
 	authCodeService services.IAuthorizationCodeService
 	userService     services.IUserService
+	sessionService  services.ISessionService
 }
 
 func NewAuthorizationHandler(
 	clientService services.IClientService,
 	authCodeService services.IAuthorizationCodeService,
 	userService services.IUserService,
+	sessionService services.ISessionService,
 ) IAuthorizationHandler {
 	return &AuthorizationHandler{
 		clientService:   clientService,
 		authCodeService: authCodeService,
 		userService:     userService,
+		sessionService:  sessionService,
 	}
 }
 
-// TODO: User auth
-func (h *AuthorizationHandler) Handle(input inputs.AuthorizationInput) error {
-	ctx := context.Background()
+// TODO: Better errors
+func (h *AuthorizationHandler) Handle(ctx AuthContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error) {
 
-	client, err := h.clientService.CheckIfClientExistsByID(ctx, input.ClientID)
+	client, err := h.clientService.CheckIfClientExistsByID(ctx, input.GetClientID())
 
 	if err != nil {
 		e := errors.New("client verification failed")
 		logrus.WithError(err).Error(e)
-		return e
+		return nil, e
 	}
 
 	if !strings.Contains(client.ResponseTypes, string(constants.TokenResponseType)) {
 		e := errors.New("response type not allowed")
 		logrus.Error(e)
-		return e
+		return nil, e
 	}
 
-	if !strings.Contains(client.RedirectURI, input.RedirectURI) {
+	if !strings.Contains(client.RedirectURI, input.GetRedirectURI()) {
 		e := errors.New("redirect uri not allowed")
 		logrus.Error(e)
-		return e
+		return nil, e
 	}
 
-	// user, err := h.userService.CheckIfUserExistsByID(ctx, input.UserID)
+	code, err := h.authCodeService.GenerateCodeWithPKCE(
+		ctx,
+		client,
+		ctx.UserID,
+		input.GetRedirectURI(),
+		input.GetCodeChallenge(),
+		input.GetCodeChallengeMethod(),
+	)
 
-	return nil
+	if err != nil {
+		logrus.WithError(err).Error("failed to generate authorization code")
+		return nil, err
+	}
+
+	return outputs.AuthorizeOutput{
+		Code:  code,
+		State: input.GetState(),
+	}, nil
 }

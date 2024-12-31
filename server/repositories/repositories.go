@@ -6,4 +6,5 @@ type Repositories struct {
 	ClientRepository            IClientRepository
 	RefreshTokenRepository      IRefreshTokenRepository
 	UserRepository              IUserRepository
+	SessionRepository           ISessionRepository
 }

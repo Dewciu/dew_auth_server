@@ -32,8 +32,8 @@ type ClientService struct {
 	clientRepository repositories.IClientRepository
 }
 
-func NewClientService(clientRepository repositories.IClientRepository) ClientService {
-	return ClientService{
+func NewClientService(clientRepository repositories.IClientRepository) IClientService {
+	return &ClientService{
 		clientRepository: clientRepository,
 	}
 }

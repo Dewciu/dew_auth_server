@@ -54,13 +54,13 @@ func main() {
 	repositories := getRepositories(db)
 	services := getServices(repositories)
 	handlers := getHandlers(services)
-	controllers := getControllers(templatePath, handlers)
+	controllers := getControllers(templatePath, handlers, services)
 
 	oauthServer.Configure(controllers)
 	oauthServer.Run(ctx, serveAddress)
 }
 
-func getControllers(templatePath string, handlers *handlers.Handlers) *controllers.Controllers {
+func getControllers(templatePath string, handlers *handlers.Handlers, services *services.Services) *controllers.Controllers {
 	accessTokenController := controllers.NewAccessTokenController(
 		handlers.AuthorizationCodeGrantHandler,
 	)
@@ -70,6 +70,7 @@ func getControllers(templatePath string, handlers *handlers.Handlers) *controlle
 	)
 	authorizationController := controllers.NewAuthorizationController(
 		handlers.AuthorizationHandler,
+		services.SessionService,
 	)
 	return &controllers.Controllers{
 		AccessTokenController:   accessTokenController,
@@ -93,6 +94,7 @@ func getHandlers(services *services.Services) *handlers.Handlers {
 			services.ClientService,
 			services.AuthorizationCodeService,
 			services.UserService,
+			services.SessionService,
 		),
 	}
 }
@@ -104,13 +106,16 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 	authorizationCodeService := services.NewAuthorizationCodeService(repositories.AuthorizationCodeRepository)
 	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
 	userService := services.NewUserService(repositories.UserRepository)
+	sessionService := services.NewSessionService(repositories.SessionRepository)
 
+	//TODO: Refactor those services to pointers
 	return &services.Services{
 		AccessTokenService:       &accessTokenService,
-		ClientService:            &clientService,
+		ClientService:            clientService,
 		AuthorizationCodeService: &authorizationCodeService,
 		RefreshTokenService:      &refreshTokenService,
 		UserService:              &userService,
+		SessionService:           sessionService,
 	}
 }
 

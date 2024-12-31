@@ -6,11 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type Session struct {
+type Consent struct {
 	BaseModel
 	ClientID  uuid.UUID `gorm:"type:uuid;not null"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null"`
-	ExpiresAt time.Time `gorm:"not null"`
+	Scopes    string    `gorm:"type:text;not null"`
+	GrantedAt time.Time `gorm:"not null"`
+	RevokedAt time.Time `gorm:"not null"`
 	Client    Client    `gorm:"foreignKey:ClientID"`
 	User      User      `gorm:"foreignKey:UserID"`
 }

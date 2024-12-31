@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/dewciu/dew_auth_server/server/repositories"
+	serr "github.com/dewciu/dew_auth_server/server/services/service_errors"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 var _ ISessionService = new(SessionService)
@@ -31,6 +33,12 @@ func (s *SessionService) GetUserIDFromSession(ctx context.Context, sessionID str
 
 	session, err := s.sessionRepository.GetWithID(ctx, sessionUUID)
 	if err != nil {
+		return "", err
+	}
+
+	if session.UserID == uuid.Nil {
+		err := serr.NewNoUserInSessionError(sessionID)
+		logrus.Error(err)
 		return "", err
 	}
 

@@ -1,39 +1,86 @@
 package controllers
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/handlers"
+	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
 )
 
 type AuthorizationController struct {
-	authCodeHandler handlers.IAuthorizationHandler
+	authorizationHandler handlers.IAuthorizationHandler
+	sessionService       services.ISessionService
 }
 
-func NewAuthorizationController(authCodeHandler handlers.IAuthorizationHandler) AuthorizationController {
+func NewAuthorizationController(
+	authorizationHandler handlers.IAuthorizationHandler,
+	sessionService services.ISessionService,
+
+) AuthorizationController {
 	return AuthorizationController{
-		authCodeHandler: authCodeHandler,
+		authorizationHandler: authorizationHandler,
+		sessionService:       sessionService,
 	}
 }
 
 // TODO: Session stores, user login redirection, etc.
 func (ac *AuthorizationController) Authorize(c *gin.Context) {
-	var authInput inputs.AuthorizationInput
+	loginRedirectEndpoint := "/login"
+	ctx := handlers.NewAuthContext(c.Request.Context())
 
+	var authInput *inputs.AuthorizationInput
 	if err := c.ShouldBindQuery(&authInput); err != nil {
+		//TODO: Handle error properly with redirect
 		handleParseError(c, err, authInput)
 		return
 	}
 
-	// output, err := ac.authCodeHandler.Handle(authInput)
-	// if err != nil {
-	// 	logrus.WithError(err).Error("Failed to handle authorization request")
-	// 	c.JSON(http.StatusInternalServerError, outputs.ErrorResponse(
-	// 		string(constants.ServerError),
-	// 		"Failed to handle authorization request.",
-	// 	))
-	// 	return
-	// }
+	cookies := c.Request.Cookies()
 
-	// c.JSON(http.StatusOK, output)
+	sessionID := ac.getSessionID(cookies)
+
+	if sessionID == "" {
+		c.Redirect(http.StatusFound, loginRedirectEndpoint)
+	}
+
+	userID, err := ac.sessionService.GetUserIDFromSession(ctx, sessionID)
+
+	if err != nil {
+		c.Redirect(http.StatusFound, loginRedirectEndpoint)
+	}
+
+	ctx.SessionID = sessionID
+	ctx.UserID = userID
+
+	output, err := ac.authorizationHandler.Handle(ctx, authInput)
+
+	//TODO: Handle error properly, depends on which error is returned
+	if err != nil {
+		//TODO: It can't be that way, we need to do proper errors and errors description
+		params := fmt.Sprintf("?error=%s&error_description=%s", err, err)
+		c.Redirect(
+			http.StatusFound,
+			authInput.RedirectURI+params,
+		)
+	}
+
+	params := fmt.Sprintf("?code=%s&state=%s", output.GetCode(), output.GetState())
+	c.Redirect(
+		http.StatusFound,
+		authInput.RedirectURI+params,
+	)
+}
+
+func (ac *AuthorizationController) getSessionID(cookies []*http.Cookie) string {
+	sessionID := ""
+	for _, cookie := range cookies {
+		if cookie.Name == "session_id" {
+			sessionID = cookie.Value
+			break
+		}
+	}
+	return sessionID
 }

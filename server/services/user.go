@@ -11,7 +11,6 @@ import (
 var _ IUserService = new(UserService)
 
 type IUserService interface {
-	CheckIfUserExistsByName(ctx context.Context, username string) (*models.User, error)
 	CheckIfUserExistsByID(ctx context.Context, userID string) (*models.User, error)
 }
 
@@ -23,21 +22,6 @@ func NewUserService(userRepository repositories.IUserRepository) UserService {
 	return UserService{
 		userRepository: userRepository,
 	}
-}
-
-func (s *UserService) CheckIfUserExistsByName(
-	ctx context.Context,
-	username string,
-) (*models.User, error) {
-	user, err := s.userRepository.GetWithName(ctx, username)
-	if err != nil {
-		return nil, err
-	}
-	if user == nil {
-		return nil, errors.New("user not found")
-	}
-
-	return user, nil
 }
 
 func (s *UserService) CheckIfUserExistsByID(
