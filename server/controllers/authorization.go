@@ -63,12 +63,9 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	//TODO: Handle error properly, depends on which error is returned
 	if err != nil {
 		//TODO: It can't be that way, we need to do proper errors and errors description
-		fmt.Println(&authInput.RedirectURI)
 		params := fmt.Sprintf("?error=%s&error_description=%s", err, err)
 		val := &authInput
 		uri := val.RedirectURI
-		fmt.Println(uri)
-		fmt.Println(params)
 		c.Redirect(
 			http.StatusFound,
 			uri+params,

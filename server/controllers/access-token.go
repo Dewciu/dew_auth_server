@@ -8,19 +8,19 @@ import (
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
-	"github.com/dewciu/dew_auth_server/server/handlers"
+	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
 
 type AccessTokenController struct {
-	authCodeGrantHandler handlers.IAuthorizationCodeGrantHandler
+	authCodeGrantService services.IAuthorizationCodeGrantService
 }
 
-func NewAccessTokenController(authCodeGrantHandler handlers.IAuthorizationCodeGrantHandler) AccessTokenController {
+func NewAccessTokenController(authCodeGrantService services.IAuthorizationCodeGrantService) AccessTokenController {
 	return AccessTokenController{
-		authCodeGrantHandler: authCodeGrantHandler,
+		authCodeGrantService: authCodeGrantService,
 	}
 }
 
@@ -43,13 +43,14 @@ func (atc *AccessTokenController) Issue(c *gin.Context) {
 }
 
 func (atc AccessTokenController) handleAuthorizationCodeGrant(c *gin.Context) {
+	ctx := c.Request.Context()
 	var authCodeGrantInput inputs.AuthorizationCodeGrantInput
 	if err := c.ShouldBind(&authCodeGrantInput); err != nil {
 		handleGrantParseError(c, err, authCodeGrantInput, "authorization code")
 		return
 	}
 
-	output, err := atc.authCodeGrantHandler.Handle(authCodeGrantInput)
+	output, err := atc.authCodeGrantService.Handle(ctx, authCodeGrantInput)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to handle authorization code grant")
 		c.JSON(http.StatusInternalServerError, outputs.ErrorResponse(

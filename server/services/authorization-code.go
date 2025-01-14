@@ -35,8 +35,8 @@ type AuthorizationCodeService struct {
 	authorizationCodeRepository repositories.IAuthorizationCodeRepository
 }
 
-func NewAuthorizationCodeService(authorizationCodeRepository repositories.IAuthorizationCodeRepository) AuthorizationCodeService {
-	return AuthorizationCodeService{
+func NewAuthorizationCodeService(authorizationCodeRepository repositories.IAuthorizationCodeRepository) IAuthorizationCodeService {
+	return &AuthorizationCodeService{
 		authorizationCodeRepository: authorizationCodeRepository,
 	}
 }

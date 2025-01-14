@@ -1,4 +1,4 @@
-package handlers
+package services
 
 import (
 	"context"
@@ -8,30 +8,29 @@ import (
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
-	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/sirupsen/logrus"
 )
 
-var _ IAuthorizationCodeGrantHandler = new(AuthorizationCodeGrantHandler)
+var _ IAuthorizationCodeGrantService = new(AuthorizationCodeGrantService)
 
-type IAuthorizationCodeGrantHandler interface {
-	Handle(input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error)
+type IAuthorizationCodeGrantService interface {
+	Handle(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error)
 }
 
-type AuthorizationCodeGrantHandler struct {
-	accessTokenService  services.IAccessTokenService
-	clientService       services.IClientService
-	authCodeService     services.IAuthorizationCodeService
-	refreshTokenService services.IRefreshTokenService
+type AuthorizationCodeGrantService struct {
+	accessTokenService  IAccessTokenService
+	clientService       IClientService
+	authCodeService     IAuthorizationCodeService
+	refreshTokenService IRefreshTokenService
 }
 
-func NewAuthorizationCodeGrantHandler(
-	accessTokenService services.IAccessTokenService,
-	clientService services.IClientService,
-	authCodeService services.IAuthorizationCodeService,
-	refreshTokenService services.IRefreshTokenService,
-) IAuthorizationCodeGrantHandler {
-	return &AuthorizationCodeGrantHandler{
+func NewAuthorizationCodeGrantService(
+	accessTokenService IAccessTokenService,
+	clientService IClientService,
+	authCodeService IAuthorizationCodeService,
+	refreshTokenService IRefreshTokenService,
+) IAuthorizationCodeGrantService {
+	return &AuthorizationCodeGrantService{
 		accessTokenService:  accessTokenService,
 		clientService:       clientService,
 		authCodeService:     authCodeService,
@@ -41,9 +40,8 @@ func NewAuthorizationCodeGrantHandler(
 
 //TODO: Consider refactoring things using goroutines and channels.
 
-func (h *AuthorizationCodeGrantHandler) Handle(input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error) {
+func (h *AuthorizationCodeGrantService) Handle(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error) {
 	var output *outputs.AuthorizationCodeGrantOutput
-	ctx := context.Background()
 
 	client, err := h.clientService.VerifyClientSecret(ctx, input.ClientID, input.ClientSecret)
 

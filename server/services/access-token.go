@@ -32,8 +32,8 @@ type AccessTokenService struct {
 	accessTokenRepository repositories.IAccessTokenRepository
 }
 
-func NewAccessTokenService(accessTokenRepository repositories.IAccessTokenRepository) AccessTokenService {
-	return AccessTokenService{
+func NewAccessTokenService(accessTokenRepository repositories.IAccessTokenRepository) IAccessTokenService {
+	return &AccessTokenService{
 		accessTokenRepository: accessTokenRepository,
 	}
 }

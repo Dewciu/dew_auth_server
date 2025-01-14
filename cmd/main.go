@@ -62,7 +62,7 @@ func main() {
 
 func getControllers(templatePath string, handlers *handlers.Handlers, services *services.Services) *controllers.Controllers {
 	accessTokenController := controllers.NewAccessTokenController(
-		handlers.AuthorizationCodeGrantHandler,
+		services.AuthorizationCodeGrantService,
 	)
 	clientRegisterController := controllers.NewRegisterController(
 		templatePath,
@@ -86,12 +86,6 @@ func getControllers(templatePath string, handlers *handlers.Handlers, services *
 
 func getHandlers(services *services.Services) *handlers.Handlers {
 	return &handlers.Handlers{
-		AuthorizationCodeGrantHandler: handlers.NewAuthorizationCodeGrantHandler(
-			services.AccessTokenService,
-			services.ClientService,
-			services.AuthorizationCodeService,
-			services.RefreshTokenService,
-		),
 		AuthorizationHandler: handlers.NewAuthorizationHandler(
 			services.ClientService,
 			services.AuthorizationCodeService,
@@ -109,15 +103,22 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
 	userService := services.NewUserService(repositories.UserRepository)
 	sessionService := services.NewSessionService(repositories.SessionRepository)
+	authorizationCodeGrantService := services.NewAuthorizationCodeGrantService(
+		accessTokenService,
+		clientService,
+		authorizationCodeService,
+		refreshTokenService,
+	)
 
 	//TODO: Refactor those services to pointers
 	return &services.Services{
-		AccessTokenService:       &accessTokenService,
-		ClientService:            clientService,
-		AuthorizationCodeService: &authorizationCodeService,
-		RefreshTokenService:      &refreshTokenService,
-		UserService:              &userService,
-		SessionService:           sessionService,
+		AccessTokenService:            accessTokenService,
+		ClientService:                 clientService,
+		AuthorizationCodeService:      authorizationCodeService,
+		RefreshTokenService:           refreshTokenService,
+		UserService:                   userService,
+		SessionService:                sessionService,
+		AuthorizationCodeGrantService: authorizationCodeGrantService,
 	}
 }
 
