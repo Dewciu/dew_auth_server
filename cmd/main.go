@@ -97,7 +97,6 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		refreshTokenService,
 	)
 
-	//TODO: Refactor those services to pointers
 	return &services.Services{
 		AccessTokenService:            accessTokenService,
 		ClientService:                 clientService,

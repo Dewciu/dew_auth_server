@@ -1,75 +1,99 @@
 openapi: 3.0.3
 info:
-  title: OAuth 2.0 Authorization Server with PKCE Support
-  description: A specification for an OAuth 2.0 Authorization Server that supports Proof Key for Code Exchange (PKCE).
+  title: OAuth 2.0 Authorization Server
+  description: >
+    This specification describes the endpoints required for an OAuth 2.0
+    Authorization Server implementing the Authorization Code flow **with PKCE**,
+    as well as Token Revocation and Introspection.  
+    It includes support for **state** (for CSRF protection) and demonstrates
+    examples for request parameters and responses in JSON.  
   version: 1.0.0
+
 servers:
-  - url: http://localhost:8050/oauth
-  - url: https://auth.dew.com
-    description: Authorization Server Base URL
+  - url: https://your-auth-server.com
+
 paths:
-  /authorize:
+  /oauth2/authorize:
     get:
-      tags:
-        - Authorization
-      summary: Authorization Endpoint
-      description: Initiates the OAuth 2.0 authorization process.
+      summary: OAuth 2.0 Authorization Endpoint
+      description: >
+        The Authorization Endpoint is used by the client to obtain authorization
+        from the resource owner. In the Authorization Code flow with PKCE,
+        the client sends a `code_challenge` to bind the subsequent token exchange
+        to the same client instance.
       parameters:
         - name: response_type
           in: query
+          description: Must be set to `code` for authorization code flow.
           required: true
-          description: Response type indicating the authorization grant type (e.g., `code` for authorization code flow).
           schema:
             type: string
             enum: [code]
         - name: client_id
           in: query
+          description: The unique client identifier obtained during registration.
           required: true
-          description: Client identifier issued to the client during registration.
           schema:
             type: string
         - name: redirect_uri
           in: query
-          required: false
-          description: Redirection URI to which the response will be sent.
+          description: The URI where the user is redirected after authorization.
+          required: true
           schema:
             type: string
+            format: uri
         - name: scope
           in: query
-          required: false
-          description: Space-separated list of scopes requested by the client.
+          description: A space-delimited list of scopes requested.
+          required: true
           schema:
             type: string
         - name: state
           in: query
+          description: An opaque value to maintain state between the request and callback (CSRF protection).
           required: false
-          description: Opaque value used to maintain state between the request and callback.
           schema:
             type: string
         - name: code_challenge
           in: query
+          description: >
+            PKCE code challenge. Base64URL-encoded SHA256 hash (S256) of the
+            `code_verifier`, or the plain `code_verifier` if `code_challenge_method=plain`.
           required: true
-          description: PKCE code challenge derived from the code verifier.
           schema:
             type: string
         - name: code_challenge_method
           in: query
-          required: false
-          description: The method used to derive the code challenge (e.g., `S256` or `plain`).
+          description: >
+            The method used to derive `code_challenge`. Typically `S256` or `plain`.
+          required: true
           schema:
             type: string
-            enum: [plain, S256]
+            enum: [S256, plain]
       responses:
-        302:
-          description: Redirect to the client's redirect URI with authorization code and state.
-        400:
-          $ref: '#/components/responses/BadRequest'
-  /token:
+        '302':
+          description: >
+            Redirect to the client’s `redirect_uri` with either an authorization
+            code (if successful) or an error parameter (if denied or failed).
+          headers:
+            Location:
+              description: >
+                Redirection to the `redirect_uri` with query params:
+                `code=<authorization_code>` and `state=<state_value>`
+              schema:
+                type: string
+        '4XX':
+          description: >
+            Error redirection if the request is invalid, client_id is unknown, or the user
+            denies the request.
+
+  /oauth2/token:
     post:
-      tags:
-        - Authorization
-      summary: Token Endpoint
-      description: Exchanges an authorization code or refresh token, for an access token.
+      summary: OAuth 2.0 Token Endpoint
+      description: >
+        The Token Endpoint is used by the client to exchange an authorization code
+        for an access token and optionally a refresh token. It also handles token
+        refresh requests with `grant_type=refresh_token`.
       requestBody:
         required: true
         content:
@@ -79,32 +103,46 @@ paths:
               properties:
                 grant_type:
                   type: string
-                  description: The type of grant being used (e.g., `authorization_code`).
-                  enum: [authorization_code, refresh_token]
+                  description: Must be `authorization_code` or `refresh_token`.
+                  example: authorization_code
                 code:
                   type: string
-                  description: The authorization code received from the authorization endpoint.
+                  description: >
+                    The authorization code received from the Authorization Endpoint.
+                  example: SplxlOBeZQQYbYS6WxSbIA
                 redirect_uri:
                   type: string
-                  description: The redirect URI used in the initial authorization request.
+                  format: uri
+                  description: >
+                    The same redirect URI used when requesting the authorization code.
+                  example: https://client.example.org/callback
                 client_id:
                   type: string
-                  description: Client identifier issued to the client during registration.
+                  description: Client identifier (public clients).
+                  example: abc123
                 client_secret:
                   type: string
-                  description: Client secret granted after client registration (e.g., for retrieving refresh token).
-                refrest_token:
-                  type: string
-                  description: Refresh token used to obtain a new access token.
+                  description: Client secret (confidential clients).
+                  example: secret123
                 code_verifier:
                   type: string
-                  description: PKCE code verifier used to generate the code challenge.
-              required:
-                - grant_type
-                - client_id
+                  description: >
+                    The original random string used to create the `code_challenge`.
+                  example: 7ZLQNH01xQrxLY7X0Qxikxoe12GhFvcFa2a
+                refresh_token:
+                  type: string
+                  description: >
+                    The valid refresh token used to obtain new access tokens
+                    (when `grant_type=refresh_token`).
+                  example: tGzv3JOkF0XG5Qx2TlKWIA
+                scope:
+                  type: string
+                  description: >
+                    The requested scope for the new access token.
+                  example: read write
       responses:
-        200:
-          description: Access token response.
+        '200':
+          description: Successful token response
           content:
             application/json:
               schema:
@@ -113,27 +151,46 @@ paths:
                   access_token:
                     type: string
                     description: The access token issued by the authorization server.
+                    example: 2YotnFZFEjr1zCsicMWpAA
                   token_type:
                     type: string
-                    description: The type of token issued (e.g., `Bearer`).
+                    description: The type of the token (usually `Bearer`).
                     example: Bearer
                   expires_in:
                     type: integer
                     description: Lifetime in seconds of the access token.
+                    example: 3600
                   refresh_token:
                     type: string
-                    description: Token used to obtain a new access token.
+                    description: Token to obtain a new access token without user intervention.
+                    example: tGzv3JOkF0XG5Qx2TlKWIA
                   scope:
                     type: string
-                    description: Scopes granted by the access token.
-        400:
-          $ref: '#/components/responses/BadRequest'
-  /introspect:
+                    description: The scopes of the access token.
+                    example: read write
+        '4XX':
+          description: Invalid request or invalid client credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error code (e.g., `invalid_request`, `invalid_grant`).
+                    example: invalid_request
+                  error_description:
+                    type: string
+                    description: Human-readable description of the error.
+                    example: Code is missing or invalid
+
+  /oauth2/revoke:
     post:
-      tags:
-        - Token Management
-      summary: Token Introspection Endpoint
-      description: Allows resource servers to validate and inspect access tokens.
+      summary: OAuth 2.0 Token Revocation Endpoint
+      description: >
+        The Token Revocation Endpoint is used by the client to notify the
+        authorization server that a previously obtained token (access or refresh)
+        is no longer needed.
       requestBody:
         required: true
         content:
@@ -143,16 +200,59 @@ paths:
               properties:
                 token:
                   type: string
-                  description: The token to introspect.
+                  description: The token that the client wants to revoke.
+                  example: 2YotnFZFEjr1zCsicMWpAA
                 token_type_hint:
                   type: string
-                  description: Hint about the type of token being introspected.
+                  description: A hint about the token type being revoked.
                   enum: [access_token, refresh_token]
-              required:
-                - token
+                  example: access_token
+                client_id:
+                  type: string
+                  description: The client ID (public client).
+                client_secret:
+                  type: string
+                  description: The client secret (confidential client).
       responses:
-        200:
-          description: Token introspection response.
+        '200':
+          description: >
+            Token revoked (or the token was already invalid). The authorization server
+            typically responds with an empty body or a small JSON status.
+        '4XX':
+          description: Invalid request or unauthorized client credentials.
+
+  /oauth2/introspect:
+    post:
+      summary: OAuth 2.0 Token Introspection Endpoint
+      description: >
+        The Token Introspection Endpoint allows a protected resource or client
+        to query the authorization server about the active state of an OAuth 2.0
+        token and to determine meta-information about this token.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: The string value of the token to introspect.
+                  example: 2YotnFZFEjr1zCsicMWpAA
+                token_type_hint:
+                  type: string
+                  description: A hint about the type of the submitted token.
+                  enum: [access_token, refresh_token]
+                  example: access_token
+                client_id:
+                  type: string
+                  description: The client ID (if required for auth).
+                client_secret:
+                  type: string
+                  description: The client secret (if required for auth).
+      responses:
+        '200':
+          description: Introspection response
           content:
             application/json:
               schema:
@@ -160,81 +260,84 @@ paths:
                 properties:
                   active:
                     type: boolean
-                    description: Indicates whether the token is currently active.
+                    description: Indicates whether or not the token is currently active.
+                    example: true
                   scope:
                     type: string
-                    description: Scopes associated with the token.
+                    description: Space-separated scopes.
+                    example: read write
                   client_id:
                     type: string
-                    description: Client identifier associated with the token.
+                    description: The client identifier for which this token was issued.
+                    example: abc123
                   username:
                     type: string
-                    description: Username associated with the token.
+                    description: The username (if applicable) associated with the token.
+                    example: jdoe@example.com
+                  token_type:
+                    type: string
+                    description: Type of the token, typically `Bearer`.
+                    example: Bearer
                   exp:
                     type: integer
-                    description: Expiration time of the token.
-        400:
-          $ref: '#/components/responses/BadRequest'
-  /revoke:
-    post:
-      tags:
-        - Token Management
-      summary: Token Revocation Endpoint
-      description: Allows clients to revoke access or refresh tokens.
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              properties:
-                token:
-                  type: string
-                  description: The token to revoke.
-                token_type_hint:
-                  type: string
-                  description: Hint about the type of token being revoked.
-                  enum: [access_token, refresh_token]
-                client_id:
-                  type: string
-                  description: Client identifier.
-                client_secret:
-                  type: string
-                  description: Client secret for authentication.
-              required:
-                - token
-      responses:
-        200:
-          description: Token successfully revoked.
-        400:
-          $ref: '#/components/responses/BadRequest'
+                    description: Expiration time of the token, in Unix time.
+                    example: 1672527600
+                  iat:
+                    type: integer
+                    description: Time at which the token was issued, in Unix time.
+                    example: 1672524000
+                  nbf:
+                    type: integer
+                    description: Not-before time for the token.
+                    example: 1672524000
+                  sub:
+                    type: string
+                    description: Subject or user identifier.
+                    example: jdoe
+                  aud:
+                    type: string
+                    description: Intended audience of the token.
+                    example: https://api.example.com
+                  iss:
+                    type: string
+                    description: Issuer identifier for the token.
+                    example: https://your-auth-server.com
+        '4XX':
+          description: Invalid token or invalid client credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error code
+                    example: invalid_request
+                  error_description:
+                    type: string
+                    description: Human-readable description of the error
+                    example: The token parameter is missing
+
 components:
   securitySchemes:
-    oauth2:
+    OAuth2AuthorizationCode:
       type: oauth2
+      description: >
+        Standard OAuth2 Authorization Code flow with PKCE support.  
+        `authorizationUrl` is the `GET /oauth2/authorize` endpoint.  
+        `tokenUrl` is the `POST /oauth2/token` endpoint.
       flows:
         authorizationCode:
-          authorizationUrl: https://auth.dew.com/authorize
-          tokenUrl: https://auth.dew.com/token
+          authorizationUrl: https://your-auth-server.com/oauth2/authorize
+          tokenUrl: https://your-auth-server.com/oauth2/token
           scopes:
-            read: Read access to resources
-            write: Write access to resources
-  responses:
-    BadRequest:
-      description: Bad request due to invalid parameters.
-      content:
-        application/json:
-         schema:
-          type: object
-          properties:
-            error:
-             type: string
-             example: invalid_request
-            error_description:
-             type: string
-             example: The request is missing a required parameter, includes an invalid parameter value, or is otherwise malformed.
-            errors:
-             type: object
-             additionalProperties:
-              type: string
-              example: This field is required or invalid
+            read: Read access
+            write: Write access
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: >
+        Basic HTTP authentication, typically used by confidential clients to provide `client_id` and `client_secret`.
+
+security:
+  - OAuth2AuthorizationCode: []
