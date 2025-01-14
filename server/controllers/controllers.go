@@ -17,6 +17,7 @@ type Controllers struct {
 	AuthorizationController  AuthorizationController
 	ClientRegisterController ClientRegisterController
 	UserRegisterController   UserRegisterController
+	IndexController          IndexController
 }
 
 //TODO: Do something with it. We need to define better error handling.

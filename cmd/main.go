@@ -74,11 +74,13 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		services.AuthorizationService,
 		services.SessionService,
 	)
+	indexController := controllers.NewIndexController(templatePath)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
 		ClientRegisterController: clientRegisterController,
 		AuthorizationController:  authorizationController,
 		UserRegisterController:   userRegisterController,
+		IndexController:          indexController,
 	}
 }
 

@@ -110,4 +110,5 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	s.router.POST("/register-client", controllers.ClientRegisterController.RegisterHandler)
 	s.router.GET("/register-user", controllers.UserRegisterController.RegisterHandler)
 	s.router.POST("/register-user", controllers.UserRegisterController.RegisterHandler)
+	s.router.GET("", controllers.IndexController.IndexHandler)
 }
