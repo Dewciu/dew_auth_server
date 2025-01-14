@@ -66,7 +66,7 @@ func getControllers(templatePath string, handlers *handlers.Handlers, services *
 	)
 	clientRegisterController := controllers.NewRegisterController(
 		templatePath,
-		handlers.RegisterHandler,
+		services.ClientService,
 	)
 	userRegisterController := controllers.NewUserRegisterController(
 		templatePath,
@@ -91,9 +91,6 @@ func getHandlers(services *services.Services) *handlers.Handlers {
 			services.ClientService,
 			services.AuthorizationCodeService,
 			services.RefreshTokenService,
-		),
-		RegisterHandler: handlers.NewRegisterHandler(
-			services.ClientService,
 		),
 		AuthorizationHandler: handlers.NewAuthorizationHandler(
 			services.ClientService,

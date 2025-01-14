@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 
+	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
+	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/repositories"
 )
@@ -19,13 +21,8 @@ type IClientService interface {
 	CheckIfClientExistsByID(ctx context.Context, clientID string) (*models.Client, error)
 	RegisterClient(
 		ctx context.Context,
-		clientName string,
-		redirectUri string,
-		email string,
-		scopes string,
-		responseTypes string,
-		grantTypes string,
-	) (*models.Client, error)
+		input inputs.IClientRegisterInput,
+	) (outputs.IClientRegisterOutput, error)
 }
 
 type ClientService struct {
@@ -99,13 +96,9 @@ func (s *ClientService) GenerateClientSecret(length int) (string, error) {
 
 func (s *ClientService) RegisterClient(
 	ctx context.Context,
-	clientName string,
-	redirectUri string,
-	email string,
-	scopes string,
-	responseTypes string,
-	grantTypes string,
-) (*models.Client, error) {
+	input inputs.IClientRegisterInput,
+) (outputs.IClientRegisterOutput, error) {
+	var output outputs.ClientRegisterOutput
 
 	clientSecret, err := s.GenerateClientSecret(64)
 	if err != nil {
@@ -115,13 +108,13 @@ func (s *ClientService) RegisterClient(
 	b64clientSecret := base64.StdEncoding.EncodeToString([]byte(clientSecret))
 
 	client := &models.Client{
-		Name:          clientName,
+		Name:          input.GetClientName(),
 		Secret:        b64clientSecret,
-		ContactEmail:  email,
-		RedirectURI:   redirectUri,
-		Scopes:        scopes,
-		ResponseTypes: responseTypes,
-		GrantTypes:    grantTypes,
+		ContactEmail:  input.GetClientEmail(),
+		RedirectURI:   input.GetRedirectURI(),
+		Scopes:        input.GetScopes(),
+		ResponseTypes: input.GetResponseTypes(),
+		GrantTypes:    input.GetGrantTypes(),
 	}
 
 	err = s.clientRepository.Create(ctx, client)
@@ -130,7 +123,8 @@ func (s *ClientService) RegisterClient(
 		return nil, err
 	}
 
-	client.Secret = clientSecret
+	output.ClientID = client.ID.String()
+	output.ClientSecret = clientSecret
 
-	return client, nil
+	return &output, nil
 }

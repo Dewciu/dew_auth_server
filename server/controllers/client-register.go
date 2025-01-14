@@ -7,23 +7,23 @@ import (
 	"strings"
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
-	"github.com/dewciu/dew_auth_server/server/handlers"
+	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/dewciu/dew_auth_server/server/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type ClientRegisterController struct {
-	tmpl            *template.Template
-	registerHandler handlers.IRegisterHandler
+	tmpl          *template.Template
+	clientService services.IClientService
 }
 
 func NewRegisterController(
 	templatePath string,
-	registerHandler handlers.IRegisterHandler,
+	clientService services.IClientService,
 ) ClientRegisterController {
 	return ClientRegisterController{
-		tmpl:            template.Must(template.ParseFiles(templatePath + "/register-client.html")),
-		registerHandler: registerHandler,
+		tmpl:          template.Must(template.ParseFiles(templatePath + "/register-client.html")),
+		clientService: clientService,
 	}
 }
 
@@ -90,7 +90,9 @@ func (rc *ClientRegisterController) handlePost(c *gin.Context) {
 		Scopes:        strings.Join(scopes, ","),
 	}
 
-	output, err := rc.registerHandler.HandleClient(
+	//TODO: Create normal context
+	output, err := rc.clientService.RegisterClient(
+		c.Request.Context(),
 		clientRegisterInput,
 	)
 
