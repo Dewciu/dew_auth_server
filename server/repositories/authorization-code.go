@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/dewciu/dew_auth_server/server/models"
 	"gorm.io/gorm"
@@ -31,52 +32,45 @@ func NewAuthorizationCodeRepository(database *gorm.DB) IAuthorizationCodeReposit
 func (r *AuthorizationCodeRepository) GetWithID(ctx context.Context, id string) (*models.AuthorizationCode, error) {
 	var authorizationCode models.AuthorizationCode
 	result := r.database.Where("id = ?", id).First(&authorizationCode)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-
-	return &authorizationCode, nil
+	return &authorizationCode, result.Error
 }
 
 func (r *AuthorizationCodeRepository) Create(ctx context.Context, authorizationCode *models.AuthorizationCode) error {
 	result := r.database.WithContext(ctx).Create(authorizationCode)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
+	return result.Error
 }
 
 func (r *AuthorizationCodeRepository) Update(ctx context.Context, authorizationCode *models.AuthorizationCode) error {
 	result := r.database.WithContext(ctx).Save(authorizationCode)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
+	return result.Error
 }
 
 func (r *AuthorizationCodeRepository) GetByCode(ctx context.Context, code string) (*models.AuthorizationCode, error) {
 	var authorizationCode models.AuthorizationCode
 	result := r.database.WithContext(ctx).Where("code = ?", code).First(&authorizationCode)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-	return &authorizationCode, nil
+	return &authorizationCode, result.Error
 }
 
 func (r *AuthorizationCodeRepository) GetByUserID(ctx context.Context, userID string) ([]models.AuthorizationCode, error) {
 	var authorizationCodes []models.AuthorizationCode
 	result := r.database.WithContext(ctx).Where("user_id = ?", userID).Find(&authorizationCodes)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-	return authorizationCodes, nil
+	return authorizationCodes, result.Error
 }
 
 func (r *AuthorizationCodeRepository) GetByClientID(ctx context.Context, clientID string) ([]models.AuthorizationCode, error) {
 	var authorizationCodes []models.AuthorizationCode
 	result := r.database.WithContext(ctx).Where("client_id = ?", clientID).Find(&authorizationCodes)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-	return authorizationCodes, nil
+	return authorizationCodes, result.Error
 }

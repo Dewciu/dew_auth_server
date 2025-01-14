@@ -13,9 +13,10 @@ import (
 )
 
 type Controllers struct {
-	AccessTokenController   AccessTokenController
-	AuthorizationController AuthorizationController
-	RegisterController      ClientRegisterController
+	AccessTokenController    AccessTokenController
+	AuthorizationController  AuthorizationController
+	ClientRegisterController ClientRegisterController
+	UserRegisterController   UserRegisterController
 }
 
 //TODO: Do something with it. We need to define better error handling.

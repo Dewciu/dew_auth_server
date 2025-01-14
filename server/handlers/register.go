@@ -12,7 +12,6 @@ var _ IRegisterHandler = new(RegisterHandler)
 
 type IRegisterHandler interface {
 	HandleClient(input inputs.IClientRegisterInput) (outputs.IClientRegisterOutput, error)
-	HendleUser() error
 }
 
 type RegisterHandler struct {
@@ -63,8 +62,4 @@ func (h *RegisterHandler) HandleClient(
 	output.ClientSecret = registeredClient.Secret
 
 	return &output, nil
-}
-
-func (h *RegisterHandler) HendleUser() error {
-	return nil
 }

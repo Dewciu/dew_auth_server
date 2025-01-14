@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/dewciu/dew_auth_server/server/models"
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ type IUserRepository interface {
 	GetWithID(ctx context.Context, id string) (*models.User, error)
 	GetWithName(ctx context.Context, name string) (*models.User, error)
 	GetWithEmail(ctx context.Context, email string) (*models.User, error)
+	GetWithEmailOrUsername(ctx context.Context, email string, name string) (*models.User, error)
 	Create(ctx context.Context, user *models.User) error
 	DeleteWithID(ctx context.Context, id string) error
 	Update(ctx context.Context, user *models.User) error
@@ -31,39 +33,42 @@ func NewUserRepository(database *gorm.DB) IUserRepository {
 func (r *UserRepository) GetWithID(ctx context.Context, id string) (*models.User, error) {
 	var user models.User
 	result := r.database.Where("id = ?", id).First(&user)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-
-	return &user, nil
+	return &user, result.Error
 }
 
 func (r *UserRepository) GetWithName(ctx context.Context, name string) (*models.User, error) {
 	var user models.User
 	result := r.database.Where("name = ?", name).First(&user)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-
-	return &user, nil
+	return &user, result.Error
 }
 
 func (r *UserRepository) GetWithEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
 	result := r.database.Where("email = ?", email).First(&user)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
+	return &user, result.Error
+}
 
-	return &user, nil
+func (r *UserRepository) GetWithEmailOrUsername(ctx context.Context, email string, username string) (*models.User, error) {
+	var user models.User
+	result := r.database.Where("email = ?", email).Or("username = ?", username).First(&user)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &user, result.Error
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	result := r.database.WithContext(ctx).Create(user)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
+	return result.Error
 }
 
 func (r *UserRepository) DeleteWithID(ctx context.Context, id string) error {
@@ -76,8 +81,5 @@ func (r *UserRepository) DeleteWithID(ctx context.Context, id string) error {
 
 func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	result := r.database.WithContext(ctx).Save(user)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
+	return result.Error
 }

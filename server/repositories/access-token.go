@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/dewciu/dew_auth_server/server/models"
 	"gorm.io/gorm"
@@ -32,11 +33,10 @@ func NewAccessTokenRepository(database *gorm.DB) IAccessTokenRepository {
 func (r *AccessTokenRepository) GetWithID(ctx context.Context, id string) (*models.AccessToken, error) {
 	var accessToken models.AccessToken
 	result := r.database.Where("id = ?", id).First(&accessToken)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-
-	return &accessToken, nil
+	return &accessToken, result.Error
 }
 
 func (r *AccessTokenRepository) Create(ctx context.Context, accessToken *models.AccessToken) error {
@@ -58,10 +58,10 @@ func (r *AccessTokenRepository) Update(ctx context.Context, accessToken *models.
 func (r *AccessTokenRepository) GetByToken(ctx context.Context, token string) (*models.AccessToken, error) {
 	var accessToken models.AccessToken
 	result := r.database.WithContext(ctx).Where("token = ?", token).First(&accessToken)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-	return &accessToken, nil
+	return &accessToken, result.Error
 }
 
 func (r *AccessTokenRepository) GetByUserID(ctx context.Context, userID string) ([]models.AccessToken, error) {
@@ -85,8 +85,8 @@ func (r *AccessTokenRepository) GetByClientID(ctx context.Context, clientID stri
 func (r *AccessTokenRepository) GetByRefreshToken(ctx context.Context, refreshToken string) (*models.AccessToken, error) {
 	var accessToken models.AccessToken
 	result := r.database.WithContext(ctx).Where("refresh_token = ?", refreshToken).First(&accessToken)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-	return &accessToken, nil
+	return &accessToken, result.Error
 }

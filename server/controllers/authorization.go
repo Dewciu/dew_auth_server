@@ -28,10 +28,11 @@ func NewAuthorizationController(
 
 // TODO: Session stores, user login redirection, etc.
 func (ac *AuthorizationController) Authorize(c *gin.Context) {
-	loginRedirectEndpoint := "/login"
+	loginRedirectEndpoint := "/oauth/login"
 	ctx := handlers.NewAuthContext(c.Request.Context())
 
-	var authInput *inputs.AuthorizationInput
+	//TODO: Investigate why pointer is throwing an error
+	var authInput inputs.AuthorizationInput
 	if err := c.ShouldBindQuery(&authInput); err != nil {
 		//TODO: Handle error properly with redirect
 		handleParseError(c, err, authInput)
@@ -44,27 +45,35 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 
 	if sessionID == "" {
 		c.Redirect(http.StatusFound, loginRedirectEndpoint)
+		return
 	}
 
 	userID, err := ac.sessionService.GetUserIDFromSession(ctx, sessionID)
 
 	if err != nil {
 		c.Redirect(http.StatusFound, loginRedirectEndpoint)
+		return
 	}
 
 	ctx.SessionID = sessionID
 	ctx.UserID = userID
 
-	output, err := ac.authorizationHandler.Handle(ctx, authInput)
+	output, err := ac.authorizationHandler.Handle(ctx, &authInput)
 
 	//TODO: Handle error properly, depends on which error is returned
 	if err != nil {
 		//TODO: It can't be that way, we need to do proper errors and errors description
+		fmt.Println(&authInput.RedirectURI)
 		params := fmt.Sprintf("?error=%s&error_description=%s", err, err)
+		val := &authInput
+		uri := val.RedirectURI
+		fmt.Println(uri)
+		fmt.Println(params)
 		c.Redirect(
 			http.StatusFound,
-			authInput.RedirectURI+params,
+			uri+params,
 		)
+		return
 	}
 
 	params := fmt.Sprintf("?code=%s&state=%s", output.GetCode(), output.GetState())

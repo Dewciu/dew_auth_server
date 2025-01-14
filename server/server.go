@@ -106,6 +106,8 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 
 	s.router.POST("/oauth/token", controllers.AccessTokenController.Issue)
 	s.router.GET("/oauth/authorize", controllers.AuthorizationController.Authorize)
-	s.router.GET("/oauth/register", controllers.RegisterController.RegisterHandler)
-	s.router.POST("/oauth/register", controllers.RegisterController.RegisterHandler)
+	s.router.GET("/register-client", controllers.ClientRegisterController.RegisterHandler)
+	s.router.POST("/register-client", controllers.ClientRegisterController.RegisterHandler)
+	s.router.GET("/register-user", controllers.UserRegisterController.RegisterHandler)
+	s.router.POST("/register-user", controllers.UserRegisterController.RegisterHandler)
 }

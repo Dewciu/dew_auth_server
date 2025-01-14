@@ -64,18 +64,23 @@ func getControllers(templatePath string, handlers *handlers.Handlers, services *
 	accessTokenController := controllers.NewAccessTokenController(
 		handlers.AuthorizationCodeGrantHandler,
 	)
-	registerController := controllers.NewRegisterController(
+	clientRegisterController := controllers.NewRegisterController(
 		templatePath,
 		handlers.RegisterHandler,
+	)
+	userRegisterController := controllers.NewUserRegisterController(
+		templatePath,
+		services.UserService,
 	)
 	authorizationController := controllers.NewAuthorizationController(
 		handlers.AuthorizationHandler,
 		services.SessionService,
 	)
 	return &controllers.Controllers{
-		AccessTokenController:   accessTokenController,
-		RegisterController:      registerController,
-		AuthorizationController: authorizationController,
+		AccessTokenController:    accessTokenController,
+		ClientRegisterController: clientRegisterController,
+		AuthorizationController:  authorizationController,
+		UserRegisterController:   userRegisterController,
 	}
 }
 

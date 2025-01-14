@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/dewciu/dew_auth_server/server/models"
 	"gorm.io/gorm"
@@ -31,11 +32,10 @@ func NewRefreshTokenRepository(database *gorm.DB) IRefreshTokenRepository {
 func (r *RefreshTokenRepository) GetWithID(ctx context.Context, id string) (*models.RefreshToken, error) {
 	var refreshToken models.RefreshToken
 	result := r.database.Where("id = ?", id).First(&refreshToken)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-
-	return &refreshToken, nil
+	return &refreshToken, result.Error
 }
 
 func (r *RefreshTokenRepository) Create(ctx context.Context, refreshToken *models.RefreshToken) error {
@@ -57,10 +57,10 @@ func (r *RefreshTokenRepository) Update(ctx context.Context, refreshToken *model
 func (r *RefreshTokenRepository) GetByToken(ctx context.Context, token string) (*models.RefreshToken, error) {
 	var refreshToken models.RefreshToken
 	result := r.database.WithContext(ctx).Where("token = ?", token).First(&refreshToken)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-	return &refreshToken, nil
+	return &refreshToken, result.Error
 }
 
 func (r *RefreshTokenRepository) GetByUserID(ctx context.Context, userID string) ([]models.RefreshToken, error) {

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/google/uuid"
@@ -30,11 +31,10 @@ func NewSessionRepository(database *gorm.DB) ISessionRepository {
 func (r *SessionRepository) GetWithID(ctx context.Context, id uuid.UUID) (*models.Session, error) {
 	var session models.Session
 	result := r.database.Where("id = ?", id).First(&session)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-
-	return &session, nil
+	return &session, result.Error
 }
 
 func (r *SessionRepository) Create(ctx context.Context, session *models.Session) error {
