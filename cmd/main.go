@@ -7,7 +7,6 @@ import (
 
 	"github.com/dewciu/dew_auth_server/server"
 	"github.com/dewciu/dew_auth_server/server/controllers"
-	"github.com/dewciu/dew_auth_server/server/handlers"
 	"github.com/dewciu/dew_auth_server/server/repositories"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
@@ -53,14 +52,13 @@ func main() {
 
 	repositories := getRepositories(db)
 	services := getServices(repositories)
-	handlers := getHandlers(services)
-	controllers := getControllers(templatePath, handlers, services)
+	controllers := getControllers(templatePath, services)
 
 	oauthServer.Configure(controllers)
 	oauthServer.Run(ctx, serveAddress)
 }
 
-func getControllers(templatePath string, handlers *handlers.Handlers, services *services.Services) *controllers.Controllers {
+func getControllers(templatePath string, services *services.Services) *controllers.Controllers {
 	accessTokenController := controllers.NewAccessTokenController(
 		services.AuthorizationCodeGrantService,
 	)
@@ -73,7 +71,7 @@ func getControllers(templatePath string, handlers *handlers.Handlers, services *
 		services.UserService,
 	)
 	authorizationController := controllers.NewAuthorizationController(
-		handlers.AuthorizationHandler,
+		services.AuthorizationService,
 		services.SessionService,
 	)
 	return &controllers.Controllers{
@@ -81,17 +79,6 @@ func getControllers(templatePath string, handlers *handlers.Handlers, services *
 		ClientRegisterController: clientRegisterController,
 		AuthorizationController:  authorizationController,
 		UserRegisterController:   userRegisterController,
-	}
-}
-
-func getHandlers(services *services.Services) *handlers.Handlers {
-	return &handlers.Handlers{
-		AuthorizationHandler: handlers.NewAuthorizationHandler(
-			services.ClientService,
-			services.AuthorizationCodeService,
-			services.UserService,
-			services.SessionService,
-		),
 	}
 }
 

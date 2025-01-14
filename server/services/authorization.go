@@ -1,4 +1,4 @@
-package handlers
+package services
 
 import (
 	"errors"
@@ -7,30 +7,30 @@ import (
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
-	"github.com/dewciu/dew_auth_server/server/services"
+	sc "github.com/dewciu/dew_auth_server/server/services/servicecontexts"
 	"github.com/sirupsen/logrus"
 )
 
-var _ IAuthorizationHandler = new(AuthorizationHandler)
+var _ IAuthorizationService = new(AuthorizationService)
 
-type IAuthorizationHandler interface {
-	Handle(ctx AuthContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error)
+type IAuthorizationService interface {
+	Handle(ctx sc.AuthorizationContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error)
 }
 
-type AuthorizationHandler struct {
-	clientService   services.IClientService
-	authCodeService services.IAuthorizationCodeService
-	userService     services.IUserService
-	sessionService  services.ISessionService
+type AuthorizationService struct {
+	clientService   IClientService
+	authCodeService IAuthorizationCodeService
+	userService     IUserService
+	sessionService  ISessionService
 }
 
-func NewAuthorizationHandler(
-	clientService services.IClientService,
-	authCodeService services.IAuthorizationCodeService,
-	userService services.IUserService,
-	sessionService services.ISessionService,
-) IAuthorizationHandler {
-	return &AuthorizationHandler{
+func NewAuthorizationService(
+	clientService IClientService,
+	authCodeService IAuthorizationCodeService,
+	userService IUserService,
+	sessionService ISessionService,
+) IAuthorizationService {
+	return &AuthorizationService{
 		clientService:   clientService,
 		authCodeService: authCodeService,
 		userService:     userService,
@@ -39,7 +39,7 @@ func NewAuthorizationHandler(
 }
 
 // TODO: Better errors
-func (h *AuthorizationHandler) Handle(ctx AuthContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error) {
+func (h *AuthorizationService) Handle(ctx sc.AuthorizationContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error) {
 
 	client, err := h.clientService.CheckIfClientExistsByID(ctx, input.GetClientID())
 

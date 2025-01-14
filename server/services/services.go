@@ -8,4 +8,5 @@ type Services struct {
 	UserService                   IUserService
 	SessionService                ISessionService
 	AuthorizationCodeGrantService IAuthorizationCodeGrantService
+	AuthorizationService          IAuthorizationService
 }

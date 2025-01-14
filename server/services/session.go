@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dewciu/dew_auth_server/server/repositories"
-	serr "github.com/dewciu/dew_auth_server/server/services/service_errors"
+	serr "github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )

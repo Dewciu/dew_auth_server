@@ -5,23 +5,23 @@ import (
 	"net/http"
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
-	"github.com/dewciu/dew_auth_server/server/handlers"
 	"github.com/dewciu/dew_auth_server/server/services"
+	"github.com/dewciu/dew_auth_server/server/services/servicecontexts"
 	"github.com/gin-gonic/gin"
 )
 
 type AuthorizationController struct {
-	authorizationHandler handlers.IAuthorizationHandler
+	authorizationService services.IAuthorizationService
 	sessionService       services.ISessionService
 }
 
 func NewAuthorizationController(
-	authorizationHandler handlers.IAuthorizationHandler,
+	authorizationService services.IAuthorizationService,
 	sessionService services.ISessionService,
 
 ) AuthorizationController {
 	return AuthorizationController{
-		authorizationHandler: authorizationHandler,
+		authorizationService: authorizationService,
 		sessionService:       sessionService,
 	}
 }
@@ -29,7 +29,7 @@ func NewAuthorizationController(
 // TODO: Session stores, user login redirection, etc.
 func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	loginRedirectEndpoint := "/oauth/login"
-	ctx := handlers.NewAuthContext(c.Request.Context())
+	ctx := servicecontexts.NewAuthContext(c.Request.Context())
 
 	//TODO: Investigate why pointer is throwing an error
 	var authInput inputs.AuthorizationInput
@@ -58,7 +58,7 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	ctx.SessionID = sessionID
 	ctx.UserID = userID
 
-	output, err := ac.authorizationHandler.Handle(ctx, &authInput)
+	output, err := ac.authorizationService.Handle(ctx, &authInput)
 
 	//TODO: Handle error properly, depends on which error is returned
 	if err != nil {
