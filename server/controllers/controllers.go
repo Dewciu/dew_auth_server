@@ -17,6 +17,7 @@ type Controllers struct {
 	AuthorizationController  AuthorizationController
 	ClientRegisterController ClientRegisterController
 	UserRegisterController   UserRegisterController
+	UserLoginController      UserLoginController
 	IndexController          IndexController
 }
 

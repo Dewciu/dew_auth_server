@@ -87,6 +87,7 @@ func (s *OAuthServer) migrate() error {
 		&models.AuthorizationCode{},
 		&models.AccessToken{},
 		&models.RefreshToken{},
+		&models.Session{},
 	)
 	if err != nil {
 		return err
@@ -110,5 +111,7 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	s.router.POST("/register-client", controllers.ClientRegisterController.RegisterHandler)
 	s.router.GET("/register-user", controllers.UserRegisterController.RegisterHandler)
 	s.router.POST("/register-user", controllers.UserRegisterController.RegisterHandler)
+	s.router.GET("/login", controllers.UserLoginController.LoginHandler)
+	s.router.POST("/login", controllers.UserLoginController.LoginHandler)
 	s.router.GET("", controllers.IndexController.IndexHandler)
 }

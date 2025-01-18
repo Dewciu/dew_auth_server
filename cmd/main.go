@@ -74,12 +74,19 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		services.AuthorizationService,
 		services.SessionService,
 	)
+	userLoginController := controllers.NewUserLoginController(
+		templatePath,
+		services.UserService,
+		services.SessionService,
+	)
+
 	indexController := controllers.NewIndexController(templatePath)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
 		ClientRegisterController: clientRegisterController,
 		AuthorizationController:  authorizationController,
 		UserRegisterController:   userRegisterController,
+		UserLoginController:      userLoginController,
 		IndexController:          indexController,
 	}
 }
@@ -116,6 +123,7 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 	authorizationCodeRepository := repositories.NewAuthorizationCodeRepository(db)
 	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
 	userRepository := repositories.NewUserRepository(db)
+	sessionRepository := repositories.NewSessionRepository(db)
 
 	return &repositories.Repositories{
 		AccessTokenRepository:       accessTokenRepository,
@@ -123,5 +131,6 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 		AuthorizationCodeRepository: authorizationCodeRepository,
 		RefreshTokenRepository:      refreshTokenRepository,
 		UserRepository:              userRepository,
+		SessionRepository:           sessionRepository,
 	}
 }

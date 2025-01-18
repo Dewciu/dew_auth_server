@@ -78,7 +78,11 @@ button[type="submit"]:hover {
         {{if .Error}}
         <div class="error">{{.Error}}</div>
         {{end}}
+        {{if .Success}}
+        <div class="success">{{.Success}}</div>
+        {{end}}
         <form method="POST" action="/login">
+            <input type="hidden" name="client_id" value="{{.ClientID}}" />
             <label for="email">Email</label>
             <input type="email" id="email" name="email" required />
 

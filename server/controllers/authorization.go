@@ -44,7 +44,7 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	sessionID := ac.getSessionID(cookies)
 
 	if sessionID == "" {
-		c.Redirect(http.StatusFound, loginRedirectEndpoint)
+		c.Redirect(http.StatusFound, loginRedirectEndpoint+"?client_id="+authInput.ClientID)
 		return
 	}
 
