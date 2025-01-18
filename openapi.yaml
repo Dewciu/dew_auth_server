@@ -10,7 +10,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://your-auth-server.com
+  - url: https://dew-auth-server.com
 
 paths:
   /oauth2/authorize:
