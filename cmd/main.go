@@ -105,6 +105,12 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		authorizationCodeService,
 		refreshTokenService,
 	)
+	authorizationService := services.NewAuthorizationService(
+		clientService,
+		authorizationCodeService,
+		userService,
+		sessionService,
+	)
 
 	return &services.Services{
 		AccessTokenService:            accessTokenService,
@@ -114,6 +120,7 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		UserService:                   userService,
 		SessionService:                sessionService,
 		AuthorizationCodeGrantService: authorizationCodeGrantService,
+		AuthorizationService:          authorizationService,
 	}
 }
 

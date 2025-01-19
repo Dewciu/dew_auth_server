@@ -32,8 +32,8 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	ctx := servicecontexts.NewAuthContext(c.Request.Context())
 
 	//TODO: Investigate why pointer is throwing an error
-	var authInput inputs.AuthorizationInput
-	if err := c.ShouldBindQuery(&authInput); err != nil {
+	authInput := new(inputs.AuthorizationInput)
+	if err := c.ShouldBindQuery(authInput); err != nil {
 		//TODO: Handle error properly with redirect
 		handleParseError(c, err, authInput)
 		return
@@ -44,7 +44,7 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	sessionID := ac.getSessionID(cookies)
 
 	if sessionID == "" {
-		c.Redirect(http.StatusFound, loginRedirectEndpoint+"?client_id="+authInput.ClientID)
+		c.Redirect(http.StatusFound, loginRedirectEndpoint+"?client_id="+authInput.GetClientID())
 		return
 	}
 
@@ -58,14 +58,13 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	ctx.SessionID = sessionID
 	ctx.UserID = userID
 
-	output, err := ac.authorizationService.Handle(ctx, &authInput)
+	output, err := ac.authorizationService.AuthorizeClient(ctx, authInput)
 
 	//TODO: Handle error properly, depends on which error is returned
 	if err != nil {
 		//TODO: It can't be that way, we need to do proper errors and errors description
 		params := fmt.Sprintf("?error=%s&error_description=%s", err, err)
-		val := &authInput
-		uri := val.RedirectURI
+		uri := authInput.GetRedirectURI()
 		c.Redirect(
 			http.StatusFound,
 			uri+params,

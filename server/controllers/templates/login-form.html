@@ -81,7 +81,7 @@ button[type="submit"]:hover {
         {{if .Success}}
         <div class="success">{{.Success}}</div>
         {{end}}
-        <form method="POST" action="/login">
+        <form method="POST" action="/oauth/login">
             <input type="hidden" name="client_id" value="{{.ClientID}}" />
             <label for="email">Email</label>
             <input type="email" id="email" name="email" required />

@@ -49,7 +49,13 @@ func (s *ClientService) VerifyClientSecret(
 	}
 
 	//TODO: client secret should be hashed in database
-	if client.Secret != clientSecret {
+	decodedClientSecret, err := base64.StdEncoding.DecodeString(client.Secret)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if string(decodedClientSecret) != clientSecret {
 		return nil, errors.New("invalid client secret")
 	}
 

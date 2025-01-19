@@ -22,30 +22,30 @@ type AuthorizationInput struct {
 	CodeChallengeMethod string `form:"code_challenge_method" binding:"required,oneof=S256 plain" name:"code_challenge_method"`
 }
 
-func (a *AuthorizationInput) GetClientID() string {
+func (a AuthorizationInput) GetClientID() string {
 	return a.ClientID
 }
 
-func (a *AuthorizationInput) GetRedirectURI() string {
+func (a AuthorizationInput) GetRedirectURI() string {
 	return a.RedirectURI
 }
 
-func (a *AuthorizationInput) GetResponseType() string {
+func (a AuthorizationInput) GetResponseType() string {
 	return a.ResponseType
 }
 
-func (a *AuthorizationInput) GetScope() string {
+func (a AuthorizationInput) GetScope() string {
 	return a.Scope
 }
 
-func (a *AuthorizationInput) GetState() string {
+func (a AuthorizationInput) GetState() string {
 	return a.State
 }
 
-func (a *AuthorizationInput) GetCodeChallenge() string {
+func (a AuthorizationInput) GetCodeChallenge() string {
 	return a.CodeChallenge
 }
 
-func (a *AuthorizationInput) GetCodeChallengeMethod() string {
+func (a AuthorizationInput) GetCodeChallengeMethod() string {
 	return a.CodeChallengeMethod
 }

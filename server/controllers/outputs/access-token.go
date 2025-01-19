@@ -1,5 +1,7 @@
 package outputs
 
+import "github.com/google/uuid"
+
 var _ IAccessTokenOutput = new(AuthorizationCodeGrantOutput)
 
 type IAccessTokenOutput interface {
@@ -10,10 +12,11 @@ type IAccessTokenOutput interface {
 }
 
 type AccessTokenOutput struct {
-	AccessToken string `json:"access_token" name:"access_token" binding:"required"`
-	TokenType   string `json:"token_type" name:"token_type" binding:"required"`
-	ExpiresIn   int    `json:"expires_in" name:"expires_in" binding:"required"`
-	Scope       string `json:"scope" name:"scope" binding:"required"`
+	ID          uuid.UUID `json:"-"`
+	AccessToken string    `json:"access_token" name:"access_token" binding:"required"`
+	TokenType   string    `json:"token_type" name:"token_type" binding:"required"`
+	ExpiresIn   int       `json:"expires_in" name:"expires_in" binding:"required"`
+	Scope       string    `json:"scope" name:"scope" binding:"required"`
 }
 
 func (i AccessTokenOutput) GetAccessToken() string {
@@ -34,5 +37,5 @@ func (i AccessTokenOutput) GetScope() string {
 
 type AuthorizationCodeGrantOutput struct {
 	AccessTokenOutput
-	RefreshToken string `form:"refresh_token" name:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token" name:"refresh_token" binding:"required"`
 }

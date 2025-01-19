@@ -14,7 +14,7 @@ import (
 var _ IAuthorizationService = new(AuthorizationService)
 
 type IAuthorizationService interface {
-	Handle(ctx sc.AuthorizationContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error)
+	AuthorizeClient(ctx sc.AuthorizationContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error)
 }
 
 type AuthorizationService struct {
@@ -39,7 +39,7 @@ func NewAuthorizationService(
 }
 
 // TODO: Better errors
-func (h *AuthorizationService) Handle(ctx sc.AuthorizationContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error) {
+func (h *AuthorizationService) AuthorizeClient(ctx sc.AuthorizationContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error) {
 
 	client, err := h.clientService.CheckIfClientExistsByID(ctx, input.GetClientID())
 

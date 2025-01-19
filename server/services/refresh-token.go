@@ -18,6 +18,7 @@ type IRefreshTokenService interface {
 	GenerateOpaqueToken(length int) (string, error)
 	CreateRefreshToken(
 		ctx context.Context,
+		accessTokenID uuid.UUID,
 		clientID uuid.UUID,
 		userID uuid.UUID,
 		scope string,
@@ -53,6 +54,7 @@ func (s *RefreshTokenService) GenerateOpaqueToken(length int) (string, error) {
 
 func (s *RefreshTokenService) CreateRefreshToken(
 	ctx context.Context,
+	accessTokenID uuid.UUID,
 	clientID uuid.UUID,
 	userID uuid.UUID,
 	scope string,
@@ -67,11 +69,12 @@ func (s *RefreshTokenService) CreateRefreshToken(
 	}
 
 	tokenRecord := &models.RefreshToken{
-		ClientID:  clientID,
-		Scope:     scope,
-		UserID:    userID,
-		ExpiresAt: time.Now().Add(expirationTime),
-		Token:     token,
+		ClientID:      clientID,
+		Scope:         scope,
+		UserID:        userID,
+		ExpiresAt:     time.Now().Add(expirationTime),
+		Token:         token,
+		AccessTokenID: accessTokenID,
 	}
 
 	if err := s.refreshTokenRepository.Create(ctx, tokenRecord); err != nil {

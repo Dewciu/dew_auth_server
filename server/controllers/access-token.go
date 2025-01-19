@@ -50,7 +50,7 @@ func (atc AccessTokenController) handleAuthorizationCodeGrant(c *gin.Context) {
 		return
 	}
 
-	output, err := atc.authCodeGrantService.Handle(ctx, authCodeGrantInput)
+	output, err := atc.authCodeGrantService.ObtainAccessToken(ctx, authCodeGrantInput)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to handle authorization code grant")
 		c.JSON(http.StatusInternalServerError, outputs.ErrorResponse(

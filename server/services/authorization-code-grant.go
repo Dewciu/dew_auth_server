@@ -14,7 +14,7 @@ import (
 var _ IAuthorizationCodeGrantService = new(AuthorizationCodeGrantService)
 
 type IAuthorizationCodeGrantService interface {
-	Handle(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error)
+	ObtainAccessToken(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error)
 }
 
 type AuthorizationCodeGrantService struct {
@@ -40,7 +40,7 @@ func NewAuthorizationCodeGrantService(
 
 //TODO: Consider refactoring things using goroutines and channels.
 
-func (h *AuthorizationCodeGrantService) Handle(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error) {
+func (h *AuthorizationCodeGrantService) ObtainAccessToken(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error) {
 	var output *outputs.AuthorizationCodeGrantOutput
 
 	client, err := h.clientService.VerifyClientSecret(ctx, input.ClientID, input.ClientSecret)
@@ -94,6 +94,7 @@ func (h *AuthorizationCodeGrantService) Handle(ctx context.Context, input inputs
 
 	refreshToken, err := h.refreshTokenService.CreateRefreshToken(
 		ctx,
+		accessTokenDetails.ID,
 		client.ID,
 		codeDetails.UserID,
 		codeDetails.Scope,

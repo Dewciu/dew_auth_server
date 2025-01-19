@@ -81,6 +81,7 @@ func (s *AccessTokenService) CreateAccessToken(
 	}
 
 	output := &outputs.AccessTokenOutput{
+		ID:          tokenRecord.ID,
 		AccessToken: token,
 		TokenType:   string(constants.TokenTypeBearer),
 		ExpiresIn:   int(expirationTime.Seconds()),
