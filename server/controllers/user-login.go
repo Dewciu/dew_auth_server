@@ -40,11 +40,16 @@ func (lc *UserLoginController) LoginHandler(c *gin.Context) {
 
 func (lc *UserLoginController) handleGet(c *gin.Context) {
 	clientID := c.Query("client_id")
+	redirectURI := c.Query("redirect_uri")
 	if clientID == "" {
 		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Client ID is required"})
 		return
 	}
-	lc.tmpl.Execute(c.Writer, map[string]string{"ClientID": clientID})
+	if redirectURI == "" {
+		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Redirect URI is required"})
+		return
+	}
+	lc.tmpl.Execute(c.Writer, map[string]string{"ClientID": clientID, "RedirectURI": redirectURI})
 }
 
 func (lc *UserLoginController) handlePost(c *gin.Context) {
@@ -56,18 +61,28 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 
 	email := c.Request.Form.Get("email")
 	password := c.Request.Form.Get("password")
-	client_id := c.Request.Form.Get("client_id")
+	client_id := c.Query("client_id")
+	redirect_uri := c.Query("redirect_uri")
 
 	if client_id == "" {
 		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Client ID is required"})
 		return
 	}
+	if redirect_uri == "" {
+		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Redirect URI is required"})
+		return
+	}
+	errRet := map[string]string{
+		"ClientID":    client_id,
+		"RedirectURI": redirect_uri,
+	}
 	if email == "" {
-		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Email is required"})
+		errRet["Error"] = "Email is required"
+		lc.tmpl.Execute(c.Writer, errRet)
 		return
 	}
 	if password == "" {
-		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Password is required"})
+		errRet["Error"] = "Password is required"
 		return
 	}
 
@@ -82,7 +97,8 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 	)
 
 	if err != nil {
-		lc.tmpl.Execute(c.Writer, map[string]string{"Error": err.Error()})
+		errRet["Error"] = err.Error()
+		lc.tmpl.Execute(c.Writer, errRet)
 		return
 	}
 
@@ -93,7 +109,8 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 	)
 
 	if err != nil {
-		lc.tmpl.Execute(c.Writer, map[string]string{"Error": err.Error()})
+		errRet["Error"] = err.Error()
+		lc.tmpl.Execute(c.Writer, errRet)
 		return
 	}
 
@@ -108,6 +125,7 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 	)
 
 	lc.tmpl.Execute(c.Writer, map[string]string{
-		"Success": "User logged in successfully!",
+		"Success":     "User logged in successfully!",
+		"RedirectURI": redirect_uri,
 	})
 }

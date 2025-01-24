@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/services"
@@ -44,7 +45,8 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	sessionID := ac.getSessionID(cookies)
 
 	if sessionID == "" {
-		c.Redirect(http.StatusFound, loginRedirectEndpoint+"?client_id="+authInput.GetClientID())
+		escapedRedirectURI := url.QueryEscape(c.Request.RequestURI)
+		c.Redirect(http.StatusFound, loginRedirectEndpoint+"?client_id="+authInput.GetClientID()+"&redirect_uri="+escapedRedirectURI)
 		return
 	}
 

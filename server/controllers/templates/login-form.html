@@ -80,9 +80,13 @@ button[type="submit"]:hover {
         {{end}}
         {{if .Success}}
         <div class="success">{{.Success}}</div>
+        <script>
+            setTimeout(function() {
+                window.location.href = '{{.RedirectURI}}';
+            }, 2000);
+          </script>
         {{end}}
-        <form method="POST" action="/oauth/login">
-            <input type="hidden" name="client_id" value="{{.ClientID}}" />
+        <form method="POST" action="/oauth/login?client_id={{.ClientID}}&redirect_uri={{.RedirectURI}}">
             <label for="email">Email</label>
             <input type="email" id="email" name="email" required />
 
