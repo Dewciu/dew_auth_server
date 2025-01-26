@@ -75,6 +75,9 @@ button[type="submit"]:hover {
 <body>
     <div class="login-container">
         <h1>Login</h1>
+        {{if .SessionExpired}}
+        <div class="error">Session expired. Please login again.</div>
+        {{end}}
         {{if .Error}}
         <div class="error">{{.Error}}</div>
         {{end}}
@@ -86,7 +89,7 @@ button[type="submit"]:hover {
             }, 2000);
           </script>
         {{end}}
-        <form method="POST" action="/oauth/login?client_id={{.ClientID}}&redirect_uri={{.RedirectURI}}">
+        <form method="POST" action="/oauth2/login?client_id={{.ClientID}}&redirect_uri={{.RedirectURI}}">
             <label for="email">Email</label>
             <input type="email" id="email" name="email" required />
 

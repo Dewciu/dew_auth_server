@@ -19,10 +19,12 @@ type Controllers struct {
 	UserRegisterController   UserRegisterController
 	UserLoginController      UserLoginController
 	IndexController          IndexController
+	ConsentController        ConsentController
 }
 
 //TODO: Do something with it. We need to define better error handling.
 
+// Input must be value of the input struct
 func handleParseError(c *gin.Context, err error, input interface{}) {
 	logrus.WithError(err).Error("Failed to parse common access token input")
 

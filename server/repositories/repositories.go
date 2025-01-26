@@ -7,4 +7,5 @@ type Repositories struct {
 	RefreshTokenRepository      IRefreshTokenRepository
 	UserRepository              IUserRepository
 	SessionRepository           ISessionRepository
+	ConsentRepository           IConsentRepository
 }

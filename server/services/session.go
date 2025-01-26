@@ -2,10 +2,11 @@ package services
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/repositories"
-	serr "github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -13,8 +14,10 @@ import (
 var _ ISessionService = new(SessionService)
 
 type ISessionService interface {
-	GetUserIDFromSession(ctx context.Context, sessionID string) (string, error)
-	CreateSession(ctx context.Context, userID string, clientID string) (string, error)
+	RetrieveValidSession(ctx context.Context, sessionID string) (*models.Session, error)
+	CreateSession(ctx context.Context, userID string, clientID string, duration int) (*models.Session, error)
+	RevokeSessionByID(ctx context.Context, sessionID string) error
+	CheckIfSessionIsValid(ctx context.Context, sessionID string) (bool, error)
 }
 
 type SessionService struct {
@@ -27,47 +30,59 @@ func NewSessionService(sessionRepository repositories.ISessionRepository) ISessi
 	}
 }
 
-func (s *SessionService) GetUserIDFromSession(ctx context.Context, sessionID string) (string, error) {
+func (s *SessionService) RetrieveValidSession(ctx context.Context, sessionID string) (*models.Session, error) {
 	sessionUUID, err := uuid.Parse(sessionID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	session, err := s.sessionRepository.GetWithID(ctx, sessionUUID)
+
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if session.UserID == uuid.Nil {
-		err := serr.NewNoUserInSessionError(sessionID)
-		logrus.Error(err)
-		return "", err
+	if session == nil {
+		er := errors.New("session not found")
+		logrus.Error(er)
+		return nil, er
 	}
 
-	return session.UserID.String(), nil
+	if session.ExpiresAt.Before(time.Now()) {
+		er := errors.New("session expired")
+		logrus.Error(er)
+		return nil, er
+	}
+
+	return session, nil
 }
 
+// Duration in milliseconds
 func (s *SessionService) CreateSession(
 	ctx context.Context,
 	userID string,
 	clientID string,
-) (string, error) {
+	duration int,
+) (*models.Session, error) {
 	userUUID, err := uuid.Parse(userID)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	clientUUID, err := uuid.Parse(clientID)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	sessionID := uuid.New()
 
+	expiresAt := time.Now().Add(time.Duration(duration) * time.Second)
+
 	session := &models.Session{
-		UserID:   userUUID,
-		ClientID: clientUUID,
+		UserID:    userUUID,
+		ClientID:  clientUUID,
+		ExpiresAt: expiresAt,
 	}
 
 	session.ID = sessionID
@@ -75,8 +90,49 @@ func (s *SessionService) CreateSession(
 	err = s.sessionRepository.Create(ctx, session)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return session.ID.String(), nil
+	return session, nil
+}
+
+func (s *SessionService) RevokeSessionByID(ctx context.Context, sessionID string) error {
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		return err
+	}
+
+	session, err := s.sessionRepository.GetWithID(ctx, sessionUUID)
+
+	if err != nil {
+		return err
+	}
+
+	session.ExpiresAt = time.Now()
+
+	err = s.sessionRepository.Update(ctx, session)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SessionService) CheckIfSessionIsValid(ctx context.Context, sessionID string) (bool, error) {
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		return false, err
+	}
+
+	session, err := s.sessionRepository.GetWithID(ctx, sessionUUID)
+	if err != nil {
+		return false, err
+	}
+
+	if session.ExpiresAt.Before(time.Now()) {
+		return false, nil
+	}
+
+	return true, nil
 }

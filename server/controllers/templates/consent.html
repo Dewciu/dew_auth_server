@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+    <link rel="stylesheet" href="./styles/consent.css">
+    <title>Consent</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .consent-container {
+            max-width: 400px;
+            width: 100%;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        .consent-container:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        p {
+            text-align: center;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .scopes {
+            margin-bottom: 20px;
+        }
+        .scopes label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #555;
+        }
+        .scopes ul {
+            list-style: none;
+            padding: 0;
+        }
+        .scopes li {
+            background: #f9f9f9;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            color: #333;
+            transition: background 0.3s ease;
+        }
+        .scopes li:hover {
+            background: #e9ecef;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+        .buttons button {
+            width: 48%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        .buttons .allow {
+            background: #28a745;
+            color: #fff;
+        }
+        .buttons .allow:hover {
+            background: #218838;
+        }
+        .buttons .deny {
+            background: #dc3545;
+            color: #fff;
+        }
+        .buttons .deny:hover {
+            background: #c82333;
+        }
+        .client-name {
+            font-weight: 600;
+            color: #4c4381;
+        }
+        .error {
+            color: #dc3545;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .denied {
+            color: #dc3545;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="consent-container">
+        <h1>Consent</h1>
+        {{if .Error}}
+        <div class="error">{{.Error}}</div>
+        {{end}}
+        {{if .Denied}}
+        <div class="denied">User Denied Access. Redirecting to {{.RedirectURI}}</div>
+        <script>
+            setTimeout(function() {
+                window.location.href = '{{.RedirectURI}}';
+            }, 2000);
+        </script>
+        {{end}}
+        <p><span class="client-name">{{.ClientName}}</span> is requesting access to your account.</p>
+        <div class="scopes">
+            <label>Requested Scopes:</label>
+            <ul>
+                {{range .Scopes}}
+                <li>{{.}}</li>
+                {{end}}
+            </ul>
+        </div>
+        <form method="POST" action="/oauth2/consent?client_id={{.ClientID}}&redirect_uri={{.RedirectURI}}">
+            <div class="buttons">
+                <button type="submit" name="consent" value="allow" class="allow">Allow</button>
+                <button type="submit" name="consent" value="deny" class="deny">Deny</button>
+            </div>
+            <input type="hidden" name="scopes" value="{{.Scopes}}" />
+        </form>
+    </div>
+</body>
+</html>
