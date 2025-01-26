@@ -34,6 +34,8 @@ type OAuthServer struct {
 }
 
 func (s *OAuthServer) Configure(controllers *controllers.Controllers) {
+	//TODO: Make it configurable
+	logrus.SetLevel(logrus.DebugLevel)
 	err := s.migrate()
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to migrate database: %v", err)
@@ -88,6 +90,7 @@ func (s *OAuthServer) migrate() error {
 		&models.AccessToken{},
 		&models.RefreshToken{},
 		&models.Session{},
+		&models.Consent{},
 	)
 	if err != nil {
 		return err
@@ -105,13 +108,15 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 		URL: "/openapi.yaml", // Point to your OpenAPI specification
 	}, swaggerFiles.Handler))
 
-	s.router.POST("/oauth/token", controllers.AccessTokenController.Issue)
-	s.router.GET("/oauth/authorize", controllers.AuthorizationController.Authorize)
+	s.router.GET("", controllers.IndexController.IndexHandler)
+	s.router.POST("/oauth2/token", controllers.AccessTokenController.Issue)
+	s.router.GET("/oauth2/authorize", controllers.AuthorizationController.Authorize)
 	s.router.GET("/register-client", controllers.ClientRegisterController.RegisterHandler)
 	s.router.POST("/register-client", controllers.ClientRegisterController.RegisterHandler)
 	s.router.GET("/register-user", controllers.UserRegisterController.RegisterHandler)
 	s.router.POST("/register-user", controllers.UserRegisterController.RegisterHandler)
-	s.router.GET("/oauth/login", controllers.UserLoginController.LoginHandler)
-	s.router.POST("/oauth/login", controllers.UserLoginController.LoginHandler)
-	s.router.GET("", controllers.IndexController.IndexHandler)
+	s.router.GET("/oauth2/login", controllers.UserLoginController.LoginHandler)
+	s.router.POST("/oauth2/login", controllers.UserLoginController.LoginHandler)
+	s.router.GET("/oauth2/consent", controllers.ConsentController.ConsentHandler)
+	s.router.POST("/oauth2/consent", controllers.ConsentController.ConsentHandler)
 }

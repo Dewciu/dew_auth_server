@@ -73,14 +73,21 @@ func getControllers(templatePath string, services *services.Services) *controlle
 	authorizationController := controllers.NewAuthorizationController(
 		services.AuthorizationService,
 		services.SessionService,
+		services.ConsentService,
 	)
 	userLoginController := controllers.NewUserLoginController(
 		templatePath,
 		services.UserService,
 		services.SessionService,
+		services.ConsentService,
 	)
-
 	indexController := controllers.NewIndexController(templatePath)
+	consentController := controllers.NewConsentController(
+		templatePath,
+		services.ClientService,
+		services.ConsentService,
+		services.SessionService,
+	)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
 		ClientRegisterController: clientRegisterController,
@@ -88,6 +95,7 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		UserRegisterController:   userRegisterController,
 		UserLoginController:      userLoginController,
 		IndexController:          indexController,
+		ConsentController:        consentController,
 	}
 }
 
@@ -112,6 +120,8 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		sessionService,
 	)
 
+	consentService := services.NewConsentService(repositories.ConsentRepository)
+
 	return &services.Services{
 		AccessTokenService:            accessTokenService,
 		ClientService:                 clientService,
@@ -121,6 +131,7 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		SessionService:                sessionService,
 		AuthorizationCodeGrantService: authorizationCodeGrantService,
 		AuthorizationService:          authorizationService,
+		ConsentService:                consentService,
 	}
 }
 
@@ -131,6 +142,7 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
 	userRepository := repositories.NewUserRepository(db)
 	sessionRepository := repositories.NewSessionRepository(db)
+	consentRepository := repositories.NewConsentRepository(db)
 
 	return &repositories.Repositories{
 		AccessTokenRepository:       accessTokenRepository,
@@ -139,5 +151,6 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 		RefreshTokenRepository:      refreshTokenRepository,
 		UserRepository:              userRepository,
 		SessionRepository:           sessionRepository,
+		ConsentRepository:           consentRepository,
 	}
 }

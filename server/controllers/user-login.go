@@ -1,29 +1,38 @@
 package controllers
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type UserLoginController struct {
-	tmpl           *template.Template
-	userService    services.IUserService
-	sessionService services.ISessionService
+	tmpl                   *template.Template
+	defaultSessionDuration int
+	userService            services.IUserService
+	sessionService         services.ISessionService
+	consentService         services.IConsentService
 }
 
 func NewUserLoginController(
 	templatePath string,
 	userService services.IUserService,
 	sessionService services.ISessionService,
+	consentService services.IConsentService,
 ) UserLoginController {
+	//TODO: Session duration can be done as a configuration
 	return UserLoginController{
-		tmpl:           template.Must(template.ParseFiles(templatePath + "/login-form.html")),
-		userService:    userService,
-		sessionService: sessionService,
+		tmpl:                   template.Must(template.ParseFiles(templatePath + "/login-user.html")),
+		defaultSessionDuration: 360,
+		userService:            userService,
+		sessionService:         sessionService,
+		consentService:         consentService,
 	}
 }
 
@@ -40,16 +49,18 @@ func (lc *UserLoginController) LoginHandler(c *gin.Context) {
 
 func (lc *UserLoginController) handleGet(c *gin.Context) {
 	clientID := c.Query("client_id")
-	redirectURI := c.Query("redirect_uri")
+	authRedirectURI := c.Query("redirect_uri")
+	sessionExpired := c.Query("session_expired")
+
 	if clientID == "" {
 		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Client ID is required"})
 		return
 	}
-	if redirectURI == "" {
+	if authRedirectURI == "" {
 		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Redirect URI is required"})
 		return
 	}
-	lc.tmpl.Execute(c.Writer, map[string]string{"ClientID": clientID, "RedirectURI": redirectURI})
+	lc.tmpl.Execute(c.Writer, map[string]string{"ClientID": clientID, "RedirectURI": authRedirectURI, "SessionExpired": sessionExpired})
 }
 
 func (lc *UserLoginController) handlePost(c *gin.Context) {
@@ -61,21 +72,23 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 
 	email := c.Request.Form.Get("email")
 	password := c.Request.Form.Get("password")
-	client_id := c.Query("client_id")
-	redirect_uri := c.Query("redirect_uri")
+	clientID := c.Query("client_id")
+	authRedirectURI := c.Query("redirect_uri")
 
-	if client_id == "" {
+	if clientID == "" {
 		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Client ID is required"})
 		return
 	}
-	if redirect_uri == "" {
+	if authRedirectURI == "" {
 		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Redirect URI is required"})
 		return
 	}
+
 	errRet := map[string]string{
-		"ClientID":    client_id,
-		"RedirectURI": redirect_uri,
+		"ClientID":    clientID,
+		"RedirectURI": authRedirectURI,
 	}
+
 	if email == "" {
 		errRet["Error"] = "Email is required"
 		lc.tmpl.Execute(c.Writer, errRet)
@@ -102,10 +115,21 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 		return
 	}
 
-	sessionID, err := lc.sessionService.CreateSession(
+	session, err := lc.sessionService.CreateSession(
 		c.Request.Context(),
 		user.ID.String(),
-		client_id,
+		clientID,
+		lc.defaultSessionDuration,
+	)
+
+	c.SetCookie(
+		"session_id",
+		session.ID.String(),
+		lc.defaultSessionDuration,
+		"/",
+		"localhost",
+		false,
+		true,
 	)
 
 	if err != nil {
@@ -114,18 +138,30 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie(
-		"session_id",
-		sessionID,
-		3600,
-		"/",
-		"localhost",
-		false,
-		true,
+	consentExists, err := lc.consentService.ConsentForClientAndUserExists(
+		c.Request.Context(),
+		clientID,
+		user.ID.String(),
 	)
 
-	lc.tmpl.Execute(c.Writer, map[string]string{
-		"Success":     "User logged in successfully!",
-		"RedirectURI": redirect_uri,
-	})
+	if err != nil {
+		logrus.WithError(err).Error("Error checking consent")
+		errRet["Error"] = "Error checking consent"
+		lc.tmpl.Execute(c.Writer, errRet)
+		return
+	}
+
+	if consentExists {
+		//TODO: Do something to retrieve default session cookie
+		//TODO: Secure should be considered
+		lc.tmpl.Execute(c.Writer, map[string]string{
+			"Success":     "User logged in successfully!",
+			"RedirectURI": authRedirectURI,
+		})
+	} else {
+		escapedAuthRedirectUri := url.QueryEscape(authRedirectURI)
+		redirectUri := fmt.Sprintf("/oauth2/consent?client_id=%s&redirect_uri=%s", clientID, escapedAuthRedirectUri)
+		logrus.Debugf("Redirecting to %s", redirectUri)
+		c.Redirect(http.StatusFound, redirectUri)
+	}
 }
