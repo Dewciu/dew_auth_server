@@ -3,11 +3,11 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/dewciu/dew_auth_server/server/services/servicecontexts"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +32,6 @@ func NewAuthorizationController(
 
 // TODO: Session stores, user login redirection, etc.
 func (ac *AuthorizationController) Authorize(c *gin.Context) {
-	loginRedirectEndpoint := "/oauth2/login"
 	ctx := servicecontexts.NewAuthContext(c.Request.Context())
 
 	//TODO: Investigate why pointer is throwing an error
@@ -42,30 +41,14 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 		handleParseError(c, err, *authInput)
 		return
 	}
-
-	cookies := c.Request.Cookies()
-
-	sessionID := ac.getSessionID(cookies)
-	escapedRedirectURI := url.QueryEscape(c.Request.RequestURI)
-
-	if sessionID == "" {
-		c.Redirect(http.StatusFound, loginRedirectEndpoint+"?client_id="+authInput.GetClientID()+"&redirect_uri="+escapedRedirectURI)
-		return
-	}
-
-	session, err := ac.sessionService.RetrieveValidSession(ctx, sessionID)
-
-	if err != nil {
-		redirectURI := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s", loginRedirectEndpoint, authInput.GetClientID(), escapedRedirectURI)
-		logrus.Debugf("Redirecting to %s", redirectURI)
-		c.Redirect(http.StatusFound, redirectURI)
-		return
-	}
-
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	session.Set("client_id", authInput.GetClientID())
+	fmt.Println(userID)
 	consentExists, err := ac.consentService.ConsentForClientAndUserExists(
 		ctx,
 		authInput.GetClientID(),
-		session.UserID.String(),
+		userID.(string),
 	)
 
 	if err != nil {
@@ -88,8 +71,7 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 		return
 	}
 
-	ctx.SessionID = sessionID
-	ctx.UserID = session.UserID.String()
+	ctx.UserID = userID.(string)
 
 	output, err := ac.authorizationService.AuthorizeClient(ctx, authInput)
 
@@ -110,15 +92,4 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 		http.StatusFound,
 		authInput.RedirectURI+params,
 	)
-}
-
-func (ac *AuthorizationController) getSessionID(cookies []*http.Cookie) string {
-	sessionID := ""
-	for _, cookie := range cookies {
-		if cookie.Name == "session_id" {
-			sessionID = cookie.Value
-			break
-		}
-	}
-	return sessionID
 }

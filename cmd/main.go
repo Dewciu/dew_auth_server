@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"net/http"
 	"os"
 	"path"
@@ -67,13 +68,23 @@ func main() {
 		logrus.WithError(err).Fatalf("failed to convert sessionLifetime to int: %v", err)
 	}
 
+	signKey, err := hex.DecodeString(sessionSigningKey)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to decode sessionSigning %s to bytes: %v", sessionSigningKey, err)
+	}
+
+	encKey, err := hex.DecodeString(sessionEncriptionKey)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to decode sessionEncription %s to bytes: %v", sessionEncriptionKey, err)
+	}
+
 	sessionStore, err := redis.NewStore(
 		maxIdleConnections,
 		"tcp",
 		redisAddress,
 		"",
-		[]byte(sessionSigningKey),
-		[]byte(sessionEncriptionKey),
+		signKey,
+		encKey,
 	)
 
 	if err != nil {
@@ -91,8 +102,9 @@ func main() {
 	)
 
 	serverConfig := server.ServerConfig{
-		Database: db,
-		Router:   router,
+		Database:     db,
+		Router:       router,
+		SessionStore: sessionStore,
 	}
 
 	oauthServer := server.NewOAuthServer(&serverConfig)
