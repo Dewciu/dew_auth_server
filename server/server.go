@@ -9,6 +9,7 @@ import (
 
 	"github.com/dewciu/dew_auth_server/server/controllers"
 	"github.com/dewciu/dew_auth_server/server/models"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
@@ -17,30 +18,32 @@ import (
 )
 
 type ServerConfig struct {
-	Database *gorm.DB
-	Router   *gin.Engine
+	Database     *gorm.DB
+	Router       *gin.Engine
+	SessionStore sessions.Store
 }
 
 func NewOAuthServer(config *ServerConfig) OAuthServer {
 	return OAuthServer{
-		database: config.Database,
-		router:   config.Router,
+		database:     config.Database,
+		router:       config.Router,
+		sessionStore: config.SessionStore,
 	}
 }
 
 type OAuthServer struct {
-	database *gorm.DB
-	router   *gin.Engine
+	database     *gorm.DB
+	router       *gin.Engine
+	sessionStore sessions.Store
 }
 
 func (s *OAuthServer) Configure(controllers *controllers.Controllers) {
-	//TODO: Make it configurable
-	logrus.SetLevel(logrus.DebugLevel)
 	err := s.migrate()
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to migrate database: %v", err)
 	}
 
+	s.setMiddleware()
 	s.setRoutes(controllers)
 }
 
@@ -97,6 +100,12 @@ func (s *OAuthServer) migrate() error {
 	}
 
 	return nil
+}
+
+func (s *OAuthServer) setMiddleware() {
+	s.router.Use(gin.LoggerWithWriter(logrus.StandardLogger().Out))
+	s.router.Use(sessions.Sessions("session", s.sessionStore))
+
 }
 
 func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
