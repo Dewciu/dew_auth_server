@@ -194,7 +194,6 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 	authorizationCodeRepository := repositories.NewAuthorizationCodeRepository(db)
 	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
 	userRepository := repositories.NewUserRepository(db)
-	sessionRepository := repositories.NewSessionRepository(db)
 	consentRepository := repositories.NewConsentRepository(db)
 
 	return &repositories.Repositories{
@@ -203,7 +202,6 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 		AuthorizationCodeRepository: authorizationCodeRepository,
 		RefreshTokenRepository:      refreshTokenRepository,
 		UserRepository:              userRepository,
-		SessionRepository:           sessionRepository,
 		ConsentRepository:           consentRepository,
 	}
 }

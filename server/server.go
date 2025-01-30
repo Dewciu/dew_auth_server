@@ -93,7 +93,6 @@ func (s *OAuthServer) migrate() error {
 		&models.AuthorizationCode{},
 		&models.AccessToken{},
 		&models.RefreshToken{},
-		&models.Session{},
 		&models.Consent{},
 	)
 	if err != nil {
