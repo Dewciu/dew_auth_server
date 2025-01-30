@@ -2,13 +2,18 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
+	"net/http"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/dewciu/dew_auth_server/server"
 	"github.com/dewciu/dew_auth_server/server/controllers"
 	"github.com/dewciu/dew_auth_server/server/repositories"
 	"github.com/dewciu/dew_auth_server/server/services"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
@@ -17,9 +22,14 @@ import (
 )
 
 const (
-	serveAddressEnvVar    = "HTTP_SERVE_ADDRESS"
-	dbConnectionURLEnvVar = "DATABASE_CONNECTION_URL"
-	templatePathEnvVar    = "TEMPLATE_PATH"
+	serveAddressEnvVar            = "HTTP_SERVE_ADDRESS"
+	dbConnectionURLEnvVar         = "DATABASE_CONNECTION_URL"
+	templatePathEnvVar            = "TEMPLATE_PATH"
+	redisAddressEnvVar            = "REDIS_ADDRESS"
+	redisMaxIdleConnectionsEnvVar = "REDIS_MAX_IDLE_CONNECTIONS"
+	sessionLifetimeEnvVar         = "SESSION_LIFETIME"
+	sessionSigningKeyEnvVar       = "SESSION_SIGNING_KEY"
+	sessionEncriptionKeyEnvVar    = "SESSION_ENCRIPTION_KEY"
 )
 
 func main() {
@@ -31,9 +41,14 @@ func main() {
 	defer cancel()
 
 	var (
-		serveAddress    = os.Getenv(serveAddressEnvVar)
-		dbConnectionURL = os.Getenv(dbConnectionURLEnvVar)
-		templatePath    = os.Getenv(templatePathEnvVar)
+		serveAddress            = os.Getenv(serveAddressEnvVar)
+		dbConnectionURL         = os.Getenv(dbConnectionURLEnvVar)
+		templatePath            = os.Getenv(templatePathEnvVar)
+		redisAddress            = os.Getenv(redisAddressEnvVar)
+		redisMaxIdleConnections = os.Getenv(redisMaxIdleConnectionsEnvVar)
+		sessionLifetime         = os.Getenv(sessionLifetimeEnvVar)
+		sessionSigningKey       = os.Getenv(sessionSigningKeyEnvVar)
+		sessionEncriptionKey    = os.Getenv(sessionEncriptionKeyEnvVar)
 	)
 
 	router := gin.New()
@@ -43,9 +58,53 @@ func main() {
 		logrus.WithError(err).Fatalf("failed to connect to database: %v", err)
 	}
 
+	maxIdleConnections, err := strconv.Atoi(redisMaxIdleConnections)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to convert redisMaxIdleConnections to int: %v", err)
+	}
+
+	sessLifetime, err := strconv.Atoi(sessionLifetime)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to convert sessionLifetime to int: %v", err)
+	}
+
+	signKey, err := hex.DecodeString(sessionSigningKey)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to decode sessionSigning %s to bytes: %v", sessionSigningKey, err)
+	}
+
+	encKey, err := hex.DecodeString(sessionEncriptionKey)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to decode sessionEncription %s to bytes: %v", sessionEncriptionKey, err)
+	}
+
+	sessionStore, err := redis.NewStore(
+		maxIdleConnections,
+		"tcp",
+		redisAddress,
+		"",
+		signKey,
+		encKey,
+	)
+
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to create redis session store: %v", err)
+	}
+
+	sessionStore.Options(
+		sessions.Options{
+			Path:     "/", // cookie path
+			MaxAge:   sessLifetime,
+			HttpOnly: true,
+			Secure:   false, // set to true if using https
+			SameSite: http.SameSiteLaxMode,
+		},
+	)
+
 	serverConfig := server.ServerConfig{
-		Database: db,
-		Router:   router,
+		Database:     db,
+		Router:       router,
+		SessionStore: sessionStore,
 	}
 
 	oauthServer := server.NewOAuthServer(&serverConfig)
@@ -72,13 +131,11 @@ func getControllers(templatePath string, services *services.Services) *controlle
 	)
 	authorizationController := controllers.NewAuthorizationController(
 		services.AuthorizationService,
-		services.SessionService,
 		services.ConsentService,
 	)
 	userLoginController := controllers.NewUserLoginController(
 		templatePath,
 		services.UserService,
-		services.SessionService,
 		services.ConsentService,
 	)
 	indexController := controllers.NewIndexController(templatePath)
@@ -86,7 +143,6 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		templatePath,
 		services.ClientService,
 		services.ConsentService,
-		services.SessionService,
 	)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
@@ -106,7 +162,6 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 	authorizationCodeService := services.NewAuthorizationCodeService(repositories.AuthorizationCodeRepository)
 	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
 	userService := services.NewUserService(repositories.UserRepository)
-	sessionService := services.NewSessionService(repositories.SessionRepository)
 	authorizationCodeGrantService := services.NewAuthorizationCodeGrantService(
 		accessTokenService,
 		clientService,
@@ -117,7 +172,6 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		clientService,
 		authorizationCodeService,
 		userService,
-		sessionService,
 	)
 
 	consentService := services.NewConsentService(repositories.ConsentRepository)
@@ -128,7 +182,6 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		AuthorizationCodeService:      authorizationCodeService,
 		RefreshTokenService:           refreshTokenService,
 		UserService:                   userService,
-		SessionService:                sessionService,
 		AuthorizationCodeGrantService: authorizationCodeGrantService,
 		AuthorizationService:          authorizationService,
 		ConsentService:                consentService,

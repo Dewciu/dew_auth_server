@@ -21,20 +21,17 @@ type AuthorizationService struct {
 	clientService   IClientService
 	authCodeService IAuthorizationCodeService
 	userService     IUserService
-	sessionService  ISessionService
 }
 
 func NewAuthorizationService(
 	clientService IClientService,
 	authCodeService IAuthorizationCodeService,
 	userService IUserService,
-	sessionService ISessionService,
 ) IAuthorizationService {
 	return &AuthorizationService{
 		clientService:   clientService,
 		authCodeService: authCodeService,
 		userService:     userService,
-		sessionService:  sessionService,
 	}
 }
 

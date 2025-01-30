@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/dewciu/dew_auth_server/server/controllers"
+	"github.com/dewciu/dew_auth_server/server/middleware"
 	"github.com/dewciu/dew_auth_server/server/models"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
@@ -17,30 +19,32 @@ import (
 )
 
 type ServerConfig struct {
-	Database *gorm.DB
-	Router   *gin.Engine
+	Database     *gorm.DB
+	Router       *gin.Engine
+	SessionStore sessions.Store
 }
 
 func NewOAuthServer(config *ServerConfig) OAuthServer {
 	return OAuthServer{
-		database: config.Database,
-		router:   config.Router,
+		database:     config.Database,
+		router:       config.Router,
+		sessionStore: config.SessionStore,
 	}
 }
 
 type OAuthServer struct {
-	database *gorm.DB
-	router   *gin.Engine
+	database     *gorm.DB
+	router       *gin.Engine
+	sessionStore sessions.Store
 }
 
 func (s *OAuthServer) Configure(controllers *controllers.Controllers) {
-	//TODO: Make it configurable
-	logrus.SetLevel(logrus.DebugLevel)
 	err := s.migrate()
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to migrate database: %v", err)
 	}
 
+	s.setMiddleware()
 	s.setRoutes(controllers)
 }
 
@@ -99,6 +103,11 @@ func (s *OAuthServer) migrate() error {
 	return nil
 }
 
+func (s *OAuthServer) setMiddleware() {
+	s.router.Use(gin.LoggerWithWriter(logrus.StandardLogger().Out))
+	s.router.Use(sessions.Sessions("session", s.sessionStore))
+}
+
 func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	s.router.GET("../openapi.yaml", func(c *gin.Context) {
 		c.File("./openapi.yaml")
@@ -109,14 +118,16 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	}, swaggerFiles.Handler))
 
 	s.router.GET("", controllers.IndexController.IndexHandler)
-	s.router.POST("/oauth2/token", controllers.AccessTokenController.Issue)
-	s.router.GET("/oauth2/authorize", controllers.AuthorizationController.Authorize)
-	s.router.GET("/register-client", controllers.ClientRegisterController.RegisterHandler)
-	s.router.POST("/register-client", controllers.ClientRegisterController.RegisterHandler)
-	s.router.GET("/register-user", controllers.UserRegisterController.RegisterHandler)
-	s.router.POST("/register-user", controllers.UserRegisterController.RegisterHandler)
-	s.router.GET("/oauth2/login", controllers.UserLoginController.LoginHandler)
-	s.router.POST("/oauth2/login", controllers.UserLoginController.LoginHandler)
-	s.router.GET("/oauth2/consent", controllers.ConsentController.ConsentHandler)
-	s.router.POST("/oauth2/consent", controllers.ConsentController.ConsentHandler)
+	s.router.GET(endpoints.RegisterUser, controllers.UserRegisterController.RegisterHandler)
+	s.router.POST(endpoints.RegisterUser, controllers.UserRegisterController.RegisterHandler)
+	s.router.GET(endpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
+	s.router.POST(endpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
+	s.router.POST(endpoints.OAuth2Token, controllers.AccessTokenController.Issue)
+
+	authedGroup := s.router.Group("", middleware.SessionValidate(endpoints.OAuth2Login))
+	authedGroup.GET(endpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
+	authedGroup.GET(endpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	authedGroup.POST(endpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	authedGroup.GET(endpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
+	authedGroup.POST(endpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 }
