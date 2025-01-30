@@ -6,7 +6,6 @@ type Services struct {
 	RefreshTokenService           IRefreshTokenService
 	ClientService                 IClientService
 	UserService                   IUserService
-	SessionService                ISessionService
 	AuthorizationCodeGrantService IAuthorizationCodeGrantService
 	AuthorizationService          IAuthorizationService
 	ConsentService                IConsentService

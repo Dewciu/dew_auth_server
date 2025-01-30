@@ -14,18 +14,15 @@ import (
 
 type AuthorizationController struct {
 	authorizationService services.IAuthorizationService
-	sessionService       services.ISessionService
 	consentService       services.IConsentService
 }
 
 func NewAuthorizationController(
 	authorizationService services.IAuthorizationService,
-	sessionService services.ISessionService,
 	consentService services.IConsentService,
 ) AuthorizationController {
 	return AuthorizationController{
 		authorizationService: authorizationService,
-		sessionService:       sessionService,
 		consentService:       consentService,
 	}
 }

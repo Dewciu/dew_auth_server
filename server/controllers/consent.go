@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
 
 	"github.com/dewciu/dew_auth_server/server/services"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -15,20 +15,17 @@ type ConsentController struct {
 	tmpl           *template.Template
 	clientService  services.IClientService
 	consentService services.IConsentService
-	sessionService services.ISessionService
 }
 
 func NewConsentController(
 	templatePath string,
 	clientService services.IClientService,
 	consentService services.IConsentService,
-	sessionService services.ISessionService,
 ) ConsentController {
 	return ConsentController{
 		tmpl:           template.Must(template.ParseFiles(templatePath + "/consent.html")),
 		clientService:  clientService,
 		consentService: consentService,
-		sessionService: sessionService,
 	}
 }
 
@@ -109,14 +106,8 @@ func (cc *ConsentController) handlePost(c *gin.Context) {
 		return
 	}
 
-	sessionID, err := c.Cookie("session_id")
-
-	if sessionID == "" || err != nil {
-		redirectUri := fmt.Sprintf("/oauth2/login?client_id=%s&redirect_uri=%s", clientID, authRedirectURI)
-		logrus.Debugf("No session cookie found, redirecting to login page: %s", redirectUri)
-		c.Redirect(http.StatusFound, redirectUri)
-		return
-	}
+	session := sessions.Default(c)
+	userID := session.Get("user_id").(string)
 
 	if consent != "allow" {
 		logrus.Debugf("Redirecting to %s", authRedirectURI)
@@ -124,23 +115,10 @@ func (cc *ConsentController) handlePost(c *gin.Context) {
 		return
 	}
 
-	session, err := cc.sessionService.RetrieveValidSession(
-		c.Request.Context(),
-		sessionID,
-	)
-
-	//TODO: Normally check if session expired and for any other errors
-	if err != nil || session == nil {
-		redirectUri := fmt.Sprintf("/oauth2/login?client_id=%s&redirect_uri=%s&session_expired=true", clientID, authRedirectURI)
-		logrus.Debugf("No session found, redirecting to login page: %s", redirectUri)
-		c.Redirect(http.StatusFound, redirectUri)
-		return
-	}
-
 	_, err = cc.consentService.GrantConsentForClientAndUser(
 		c.Request.Context(),
 		clientID,
-		session.UserID.String(),
+		userID,
 		scopes,
 	)
 

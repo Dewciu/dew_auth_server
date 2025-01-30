@@ -14,14 +14,12 @@ type UserLoginController struct {
 	tmpl                   *template.Template
 	defaultSessionDuration int
 	userService            services.IUserService
-	sessionService         services.ISessionService
 	consentService         services.IConsentService
 }
 
 func NewUserLoginController(
 	templatePath string,
 	userService services.IUserService,
-	sessionService services.ISessionService,
 	consentService services.IConsentService,
 ) UserLoginController {
 	//TODO: Session duration can be done as a configuration
@@ -29,7 +27,6 @@ func NewUserLoginController(
 		tmpl:                   template.Must(template.ParseFiles(templatePath + "/login-user.html")),
 		defaultSessionDuration: 360,
 		userService:            userService,
-		sessionService:         sessionService,
 		consentService:         consentService,
 	}
 }
@@ -119,10 +116,4 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 		"Success":     "User logged in successfully!",
 		"RedirectURI": authRedirectURI,
 	})
-	// } else {
-	// 	escapedAuthRedirectUri := url.QueryEscape(authRedirectURI)
-	// 	redirectUri := fmt.Sprintf("/oauth2/consent?client_id=%s&redirect_uri=%s", clientID, escapedAuthRedirectUri)
-	// 	logrus.Debugf("Redirecting to %s", redirectUri)
-	// 	c.Redirect(http.StatusFound, redirectUri)
-	// }
 }

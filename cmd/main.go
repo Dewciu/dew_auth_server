@@ -131,13 +131,11 @@ func getControllers(templatePath string, services *services.Services) *controlle
 	)
 	authorizationController := controllers.NewAuthorizationController(
 		services.AuthorizationService,
-		services.SessionService,
 		services.ConsentService,
 	)
 	userLoginController := controllers.NewUserLoginController(
 		templatePath,
 		services.UserService,
-		services.SessionService,
 		services.ConsentService,
 	)
 	indexController := controllers.NewIndexController(templatePath)
@@ -145,7 +143,6 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		templatePath,
 		services.ClientService,
 		services.ConsentService,
-		services.SessionService,
 	)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
@@ -165,7 +162,6 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 	authorizationCodeService := services.NewAuthorizationCodeService(repositories.AuthorizationCodeRepository)
 	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
 	userService := services.NewUserService(repositories.UserRepository)
-	sessionService := services.NewSessionService(repositories.SessionRepository)
 	authorizationCodeGrantService := services.NewAuthorizationCodeGrantService(
 		accessTokenService,
 		clientService,
@@ -176,7 +172,6 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		clientService,
 		authorizationCodeService,
 		userService,
-		sessionService,
 	)
 
 	consentService := services.NewConsentService(repositories.ConsentRepository)
@@ -187,7 +182,6 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 		AuthorizationCodeService:      authorizationCodeService,
 		RefreshTokenService:           refreshTokenService,
 		UserService:                   userService,
-		SessionService:                sessionService,
 		AuthorizationCodeGrantService: authorizationCodeGrantService,
 		AuthorizationService:          authorizationService,
 		ConsentService:                consentService,
