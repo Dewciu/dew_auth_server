@@ -1,11 +1,15 @@
 package servicecontexts
 
-import "context"
+import (
+	"context"
+
+	"github.com/dewciu/dew_auth_server/server/models"
+)
 
 type AuthorizationContext struct {
 	context.Context
-	SessionID string
-	UserID    string
+	Client *models.Client
+	UserID string
 }
 
 func NewAuthContext(ctx context.Context) AuthorizationContext {

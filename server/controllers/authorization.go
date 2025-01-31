@@ -15,17 +15,20 @@ import (
 type AuthorizationController struct {
 	authorizationService services.IAuthorizationService
 	consentService       services.IConsentService
+	clientService        services.IClientService
 	consentEndpoint      string
 }
 
 func NewAuthorizationController(
 	authorizationService services.IAuthorizationService,
 	consentService services.IConsentService,
+	clientService services.IClientService,
 	consentEndpoint string,
 ) AuthorizationController {
 	return AuthorizationController{
 		authorizationService: authorizationService,
 		consentService:       consentService,
+		clientService:        clientService,
 		consentEndpoint:      consentEndpoint,
 	}
 }
@@ -43,37 +46,54 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	}
 
 	session := sessions.Default(c)
-	userID := session.Get("user_id")
-	//TODO: First check if client exists
-	session.Set("client_id", authInput.GetClientID())
+	userID := session.Get("user_id").(string)
 
-	consentExists, err := ac.consentService.ConsentForClientAndUserExists(
-		ctx,
+	client, err := ac.clientService.CheckIfClientExistsByID(
+		c.Request.Context(),
 		authInput.GetClientID(),
-		userID.(string),
 	)
 
 	if err != nil {
-		redirectURI := fmt.Sprintf("%s?error=internal_error&error_description=Internal server error", authInput.GetRedirectURI())
-		logrus.Debugf("Redirecting to %s", redirectURI)
+		ac.redirectWithInternalServerErr(c, authInput.GetRedirectURI())
+	}
+
+	if client == nil {
+		params := "?error=client does not exists&error_description=Invalid client id"
+		uri := authInput.GetRedirectURI()
 		c.Redirect(
 			http.StatusFound,
-			redirectURI,
+			uri+params,
 		)
 		return
+	}
+
+	session.Set("client_id", authInput.GetClientID())
+	session.Save()
+
+	consentExists, err := ac.consentService.ConsentForClientAndUserExists(
+		ctx,
+		client.ID.String(),
+		userID,
+	)
+
+	if err != nil {
+		ac.redirectWithInternalServerErr(c, authInput.GetRedirectURI())
 	}
 
 	if !consentExists {
-		redirectURI := ac.consentEndpoint + "?client_redirect_uri=" + authInput.GetRedirectURI() + "&auth_redirect_uri=" + authInput.GetRedirectURI()
-		logrus.Debugf("Redirecting to %s", redirectURI)
+		session.Set("auth_redirect_uri", c.Request.RequestURI)
+		session.Set("client_redirect_uri", authInput.GetRedirectURI())
+		session.Save()
+		logrus.Debugf("Redirecting to %s", ac.consentEndpoint)
 		c.Redirect(
 			http.StatusFound,
-			redirectURI,
+			ac.consentEndpoint,
 		)
 		return
 	}
 
-	ctx.UserID = userID.(string)
+	ctx.UserID = userID
+	ctx.Client = client
 	output, err := ac.authorizationService.AuthorizeClient(ctx, authInput)
 
 	//TODO: Handle error properly, depends on which error is returned
@@ -92,5 +112,14 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	c.Redirect(
 		http.StatusFound,
 		authInput.RedirectURI+params,
+	)
+}
+
+func (ac *AuthorizationController) redirectWithInternalServerErr(c *gin.Context, redirectURI string) {
+	redirectURI = fmt.Sprintf("%s?error=internal_error&error_description=Internal server error", redirectURI)
+	logrus.Debugf("Redirecting to %s", redirectURI)
+	c.Redirect(
+		http.StatusFound,
+		redirectURI,
 	)
 }

@@ -12,7 +12,6 @@ type Consent struct {
 	UserID    uuid.UUID `gorm:"type:uuid;not null"`
 	Scopes    string    `gorm:"type:text;not null"`
 	GrantedAt time.Time `gorm:"not null"`
-	RevokedAt time.Time `gorm:"default:null"`
 	Client    Client    `gorm:"foreignKey:ClientID"`
 	User      User      `gorm:"foreignKey:UserID"`
 }

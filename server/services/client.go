@@ -86,7 +86,7 @@ func (s *ClientService) CheckIfClientExistsByID(
 		return nil, err
 	}
 	if client == nil {
-		return nil, errors.New("client not found")
+		return nil, nil
 	}
 
 	return client, nil

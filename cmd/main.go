@@ -140,6 +140,7 @@ func getControllers(templatePath string, services *services.Services) *controlle
 	authorizationController := controllers.NewAuthorizationController(
 		services.AuthorizationService,
 		services.ConsentService,
+		services.ClientService,
 		server.AllEndpoints.OAuth2Consent,
 	)
 	userLoginController := controllers.NewUserLoginController(
@@ -152,6 +153,7 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		templatePath,
 		services.ClientService,
 		services.ConsentService,
+		server.AllEndpoints.OAuth2Authorize,
 	)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
