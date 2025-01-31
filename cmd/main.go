@@ -132,6 +132,7 @@ func getControllers(templatePath string, services *services.Services) *controlle
 	authorizationController := controllers.NewAuthorizationController(
 		services.AuthorizationService,
 		services.ConsentService,
+		server.AllEndpoints.OAuth2Consent,
 	)
 	userLoginController := controllers.NewUserLoginController(
 		templatePath,
