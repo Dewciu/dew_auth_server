@@ -15,15 +15,18 @@ import (
 type AuthorizationController struct {
 	authorizationService services.IAuthorizationService
 	consentService       services.IConsentService
+	consentEndpoint      string
 }
 
 func NewAuthorizationController(
 	authorizationService services.IAuthorizationService,
 	consentService services.IConsentService,
+	consentEndpoint string,
 ) AuthorizationController {
 	return AuthorizationController{
 		authorizationService: authorizationService,
 		consentService:       consentService,
+		consentEndpoint:      consentEndpoint,
 	}
 }
 
@@ -38,10 +41,12 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 		handleParseError(c, err, *authInput)
 		return
 	}
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
+	//TODO: First check if client exists
 	session.Set("client_id", authInput.GetClientID())
-	fmt.Println(userID)
+
 	consentExists, err := ac.consentService.ConsentForClientAndUserExists(
 		ctx,
 		authInput.GetClientID(),
@@ -59,7 +64,7 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	}
 
 	if !consentExists {
-		redirectURI := fmt.Sprintf("%s?error=consent_required&error_description=Consent is required", authInput.GetRedirectURI())
+		redirectURI := ac.consentEndpoint + "?client_redirect_uri=" + authInput.GetRedirectURI() + "&auth_redirect_uri=" + authInput.GetRedirectURI()
 		logrus.Debugf("Redirecting to %s", redirectURI)
 		c.Redirect(
 			http.StatusFound,
@@ -69,7 +74,6 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	}
 
 	ctx.UserID = userID.(string)
-
 	output, err := ac.authorizationService.AuthorizeClient(ctx, authInput)
 
 	//TODO: Handle error properly, depends on which error is returned

@@ -13,9 +13,10 @@ import (
 	"github.com/dewciu/dew_auth_server/server/repositories"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
+	redisSessions "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -78,7 +79,13 @@ func main() {
 		logrus.WithError(err).Fatalf("failed to decode sessionEncription %s to bytes: %v", sessionEncriptionKey, err)
 	}
 
-	sessionStore, err := redis.NewStore(
+	redisClient := redis.NewClient(
+		&redis.Options{
+			Addr: redisAddress,
+		},
+	)
+
+	sessionStore, err := redisSessions.NewStore(
 		maxIdleConnections,
 		"tcp",
 		redisAddress,
@@ -104,6 +111,7 @@ func main() {
 	serverConfig := server.ServerConfig{
 		Database:     db,
 		Router:       router,
+		RedisClient:  redisClient,
 		SessionStore: sessionStore,
 	}
 

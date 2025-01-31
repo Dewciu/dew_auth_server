@@ -12,6 +12,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -21,6 +22,7 @@ import (
 type ServerConfig struct {
 	Database     *gorm.DB
 	Router       *gin.Engine
+	RedisClient  *redis.Client
 	SessionStore sessions.Store
 }
 
@@ -28,6 +30,7 @@ func NewOAuthServer(config *ServerConfig) OAuthServer {
 	return OAuthServer{
 		database:     config.Database,
 		router:       config.Router,
+		redisClient:  config.RedisClient,
 		sessionStore: config.SessionStore,
 	}
 }
@@ -35,6 +38,7 @@ func NewOAuthServer(config *ServerConfig) OAuthServer {
 type OAuthServer struct {
 	database     *gorm.DB
 	router       *gin.Engine
+	redisClient  *redis.Client
 	sessionStore sessions.Store
 }
 
@@ -124,6 +128,8 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	s.router.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
 
 	authedGroup := s.router.Group("", middleware.SessionValidate(AllEndpoints.OAuth2Login))
+	authedGroup.Use(middleware.AddRedisClientToContext(s.redisClient))
+
 	authedGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
 	authedGroup.GET(AllEndpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
 	authedGroup.POST(AllEndpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
