@@ -11,5 +11,4 @@ type User struct {
 	Username     string    `gorm:"unique;not null"`
 	PasswordHash string    `gorm:"not null"`
 	Email        string    `gorm:"unique;not null"`
-	Sessions     []Session `gorm:"foreignKey:UserID"` // Relationship to sessions
 }

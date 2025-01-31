@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
-    <link rel="stylesheet" href="./styles/consent.css">
     <title>Consent</title>
     <style>
         body {
@@ -112,14 +111,6 @@
         {{if .Error}}
         <div class="error">{{.Error}}</div>
         {{end}}
-        {{if .Denied}}
-        <div class="denied">User Denied Access. Redirecting to {{.RedirectURI}}</div>
-        <script>
-            setTimeout(function() {
-                window.location.href = '{{.RedirectURI}}';
-            }, 2000);
-        </script>
-        {{end}}
         <p><span class="client-name">{{.ClientName}}</span> is requesting access to your account.</p>
         <div class="scopes">
             <label>Requested Scopes:</label>
@@ -129,7 +120,7 @@
                 {{end}}
             </ul>
         </div>
-        <form method="POST" action="/oauth2/consent?client_id={{.ClientID}}&redirect_uri={{.RedirectURI}}">
+        <form method="POST" action="/oauth2/consent">
             <div class="buttons">
                 <button type="submit" name="consent" value="allow" class="allow">Allow</button>
                 <button type="submit" name="consent" value="deny" class="deny">Deny</button>

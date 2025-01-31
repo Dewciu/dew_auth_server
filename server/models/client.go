@@ -17,7 +17,6 @@ type Client struct {
 	Scopes        string    `gorm:"type:text"`
 	ContactEmail  string    `gorm:"type:varchar(255);not null;unique"`
 	Name          string    `gorm:"type:varchar(255);not null;unique"`
-	Sessions      []Session `gorm:"foreignKey:ClientID"`
 	Public        bool      `gorm:"type:boolean;not null;default:false"`
 }
 

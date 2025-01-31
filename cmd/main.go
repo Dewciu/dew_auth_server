@@ -13,9 +13,10 @@ import (
 	"github.com/dewciu/dew_auth_server/server/repositories"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
+	redisSessions "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -78,7 +79,13 @@ func main() {
 		logrus.WithError(err).Fatalf("failed to decode sessionEncription %s to bytes: %v", sessionEncriptionKey, err)
 	}
 
-	sessionStore, err := redis.NewStore(
+	redisClient := redis.NewClient(
+		&redis.Options{
+			Addr: redisAddress,
+		},
+	)
+
+	sessionStore, err := redisSessions.NewStore(
 		maxIdleConnections,
 		"tcp",
 		redisAddress,
@@ -104,6 +111,7 @@ func main() {
 	serverConfig := server.ServerConfig{
 		Database:     db,
 		Router:       router,
+		RedisClient:  redisClient,
 		SessionStore: sessionStore,
 	}
 
@@ -132,6 +140,8 @@ func getControllers(templatePath string, services *services.Services) *controlle
 	authorizationController := controllers.NewAuthorizationController(
 		services.AuthorizationService,
 		services.ConsentService,
+		services.ClientService,
+		server.AllEndpoints.OAuth2Consent,
 	)
 	userLoginController := controllers.NewUserLoginController(
 		templatePath,
@@ -143,6 +153,7 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		templatePath,
 		services.ClientService,
 		services.ConsentService,
+		server.AllEndpoints.OAuth2Authorize,
 	)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
@@ -194,7 +205,6 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 	authorizationCodeRepository := repositories.NewAuthorizationCodeRepository(db)
 	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
 	userRepository := repositories.NewUserRepository(db)
-	sessionRepository := repositories.NewSessionRepository(db)
 	consentRepository := repositories.NewConsentRepository(db)
 
 	return &repositories.Repositories{
@@ -203,7 +213,6 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 		AuthorizationCodeRepository: authorizationCodeRepository,
 		RefreshTokenRepository:      refreshTokenRepository,
 		UserRepository:              userRepository,
-		SessionRepository:           sessionRepository,
 		ConsentRepository:           consentRepository,
 	}
 }

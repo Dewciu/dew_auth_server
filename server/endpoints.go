@@ -9,7 +9,7 @@ type Endpoints struct {
 	OAuth2Consent   string
 }
 
-var endpoints = Endpoints{
+var AllEndpoints = Endpoints{
 	OAuth2Token:     "/oauth2/token",
 	OAuth2Authorize: "/oauth2/authorize",
 	RegisterClient:  "/register-client",

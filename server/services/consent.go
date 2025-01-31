@@ -49,11 +49,6 @@ func (s *ConsentService) ConsentForClientAndUserExists(ctx context.Context, clie
 		return false, nil
 	}
 
-	if consent.RevokedAt != (time.Time{}) && consent.RevokedAt.Before(time.Now()) {
-		logrus.Debugf("Consent for user with ID %s and client with ID %s exists but is revoked", userID, clientID)
-		return false, nil
-	}
-
 	logrus.Debugf("Consent for user with ID %s and client with ID %s exists", userID, clientID)
 	return true, nil
 }
@@ -73,18 +68,7 @@ func (s *ConsentService) GrantConsentForClientAndUser(ctx context.Context, clien
 
 	if dbConsent != nil {
 		logrus.Debugf("Consent for user with ID %s and client with ID %s already exists", userID, clientID)
-
-		if dbConsent.RevokedAt != (time.Time{}) && dbConsent.RevokedAt.Before(time.Now()) {
-			logrus.Debugf("Consent for user with ID %s and client with ID %s is revoked", userID, clientID)
-			dbConsent.RevokedAt = time.Time{}
-			dbConsent.GrantedAt = time.Now()
-			err := s.consentRepository.Update(ctx, dbConsent)
-			if err != nil {
-				logrus.WithError(err).Error("Error while updating consent")
-				return nil, err
-			}
-			return dbConsent, nil
-		}
+		return dbConsent, nil
 	}
 
 	consent := &models.Consent{

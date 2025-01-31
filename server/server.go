@@ -12,6 +12,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -21,6 +22,7 @@ import (
 type ServerConfig struct {
 	Database     *gorm.DB
 	Router       *gin.Engine
+	RedisClient  *redis.Client
 	SessionStore sessions.Store
 }
 
@@ -28,6 +30,7 @@ func NewOAuthServer(config *ServerConfig) OAuthServer {
 	return OAuthServer{
 		database:     config.Database,
 		router:       config.Router,
+		redisClient:  config.RedisClient,
 		sessionStore: config.SessionStore,
 	}
 }
@@ -35,6 +38,7 @@ func NewOAuthServer(config *ServerConfig) OAuthServer {
 type OAuthServer struct {
 	database     *gorm.DB
 	router       *gin.Engine
+	redisClient  *redis.Client
 	sessionStore sessions.Store
 }
 
@@ -93,7 +97,6 @@ func (s *OAuthServer) migrate() error {
 		&models.AuthorizationCode{},
 		&models.AccessToken{},
 		&models.RefreshToken{},
-		&models.Session{},
 		&models.Consent{},
 	)
 	if err != nil {
@@ -118,16 +121,18 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	}, swaggerFiles.Handler))
 
 	s.router.GET("", controllers.IndexController.IndexHandler)
-	s.router.GET(endpoints.RegisterUser, controllers.UserRegisterController.RegisterHandler)
-	s.router.POST(endpoints.RegisterUser, controllers.UserRegisterController.RegisterHandler)
-	s.router.GET(endpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
-	s.router.POST(endpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
-	s.router.POST(endpoints.OAuth2Token, controllers.AccessTokenController.Issue)
+	s.router.GET(AllEndpoints.RegisterUser, controllers.UserRegisterController.RegisterHandler)
+	s.router.POST(AllEndpoints.RegisterUser, controllers.UserRegisterController.RegisterHandler)
+	s.router.GET(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
+	s.router.POST(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
+	s.router.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
 
-	authedGroup := s.router.Group("", middleware.SessionValidate(endpoints.OAuth2Login))
-	authedGroup.GET(endpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
-	authedGroup.GET(endpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
-	authedGroup.POST(endpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
-	authedGroup.GET(endpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
-	authedGroup.POST(endpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
+	authedGroup := s.router.Group("", middleware.SessionValidate(AllEndpoints.OAuth2Login))
+	authedGroup.Use(middleware.AddRedisClientToContext(s.redisClient))
+
+	authedGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
+	authedGroup.GET(AllEndpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	authedGroup.POST(AllEndpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	authedGroup.GET(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
+	authedGroup.POST(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 }

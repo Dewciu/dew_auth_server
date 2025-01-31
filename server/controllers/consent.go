@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"html/template"
 	"net/http"
 	"strings"
@@ -12,70 +13,77 @@ import (
 )
 
 type ConsentController struct {
-	tmpl           *template.Template
-	clientService  services.IClientService
-	consentService services.IConsentService
+	tmpl              *template.Template
+	clientService     services.IClientService
+	consentService    services.IConsentService
+	authorizeEndpoint string
 }
 
 func NewConsentController(
 	templatePath string,
 	clientService services.IClientService,
 	consentService services.IConsentService,
+	authorizeEndpoint string,
 ) ConsentController {
 	return ConsentController{
-		tmpl:           template.Must(template.ParseFiles(templatePath + "/consent.html")),
-		clientService:  clientService,
-		consentService: consentService,
+		tmpl:              template.Must(template.ParseFiles(templatePath + "/consent.html")),
+		clientService:     clientService,
+		consentService:    consentService,
+		authorizeEndpoint: authorizeEndpoint,
 	}
 }
 
 func (cc *ConsentController) ConsentHandler(c *gin.Context) {
+
+	session := sessions.Default(c)
+	clientID := session.Get("client_id").(string)
+	authRedirectURI := session.Get("auth_redirect_uri").(string)
+	clientRedirectURI := session.Get("client_redirect_uri").(string)
+
+	if clientID == "" || authRedirectURI == "" || clientRedirectURI == "" {
+		c.AbortWithError(
+			http.StatusBadRequest,
+			errors.New("client ID, auth redirect URI, and client redirect URI are required"),
+		)
+		return
+	}
+
+	client, err := cc.clientService.CheckIfClientExistsByID(c.Request.Context(), clientID)
+
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if client == nil {
+		c.AbortWithError(http.StatusNotFound, errors.New("client not found"))
+		return
+	}
+
+	if !strings.Contains(authRedirectURI, cc.authorizeEndpoint) {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid redirect URI"))
+		return
+	}
+
 	switch c.Request.Method {
 	case http.MethodGet:
-		cc.handleGet(c)
+		cc.tmpl.Execute(c.Writer, map[string]interface{}{
+			"ClientName": client.Name,
+			"Scopes":     strings.Split(client.Scopes, ","),
+		})
 	case http.MethodPost:
-		cc.handlePost(c)
+		cc.handlePost(c, authRedirectURI, clientRedirectURI, clientID)
 	default:
-		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Method not allowed"})
+		c.AbortWithError(http.StatusMethodNotAllowed, errors.New("method not allowed"))
 	}
 }
 
-func (cc *ConsentController) handleGet(c *gin.Context) {
-	clientID := c.Query("client_id")
-	redirectURI := c.Query("redirect_uri")
-
-	//TODO: Refactor those also in other controllers
-	if clientID == "" {
-		cc.tmpl.Execute(c.Writer, map[string]string{"Error": "Client ID is required"})
-		return
-	}
-	if redirectURI == "" {
-		cc.tmpl.Execute(c.Writer, map[string]string{"Error": "Redirect URI is required"})
-		return
-	}
-
-	client, err := cc.clientService.CheckIfClientExistsByID(
-		c.Request.Context(),
-		clientID,
-	)
-
-	//TODO: Do checking if client is really not found instead of some other error
-	if err != nil {
-		cc.tmpl.Execute(c.Writer, map[string]string{"Error": "Unable to find client"})
-		return
-	}
-
-	scopes := strings.Split(client.Scopes, ",")
-
-	cc.tmpl.Execute(c.Writer, map[string]interface{}{
-		"ClientName":  client.Name,
-		"Scopes":      scopes,
-		"RedirectURI": redirectURI,
-		"ClientID":    clientID,
-	})
-}
-
-func (cc *ConsentController) handlePost(c *gin.Context) {
+func (cc *ConsentController) handlePost(
+	c *gin.Context,
+	authRedirectURI string,
+	clientRedirectURI string,
+	clientID string,
+) {
 	err := c.Request.ParseForm()
 
 	if err != nil {
@@ -83,35 +91,31 @@ func (cc *ConsentController) handlePost(c *gin.Context) {
 		return
 	}
 
+	//TODO: Do advanced validation
+
 	scopes := c.Request.Form.Get("scopes")
-	consent := c.Request.Form.Get("consent")
-	logrus.Debugf("Consent: %s", consent)
-
-	clientID := c.Query("client_id")
-	authRedirectURI := c.Query("redirect_uri")
-
-	//TODO: Consider aborting if clientID or redirectURI is empty
-	if clientID == "" {
-		cc.tmpl.Execute(c.Writer, map[string]string{"Error": "Client ID is required"})
-		return
-	}
-
-	if authRedirectURI == "" {
-		cc.tmpl.Execute(c.Writer, map[string]string{"Error": "Redirect URI is required"})
-		return
-	}
 
 	if scopes == "" {
-		cc.tmpl.Execute(c.Writer, map[string]string{"Error": "Scopes are required"})
+		c.AbortWithError(http.StatusBadRequest, errors.New("scopes are required"))
 		return
 	}
+
+	consent := c.Request.Form.Get("consent")
+
+	if consent == "" {
+		c.AbortWithError(http.StatusBadRequest, errors.New("consent is required"))
+		return
+	}
+
+	logrus.Debugf("Consent: %s", consent)
 
 	session := sessions.Default(c)
 	userID := session.Get("user_id").(string)
 
 	if consent != "allow" {
-		logrus.Debugf("Redirecting to %s", authRedirectURI)
-		c.Redirect(http.StatusFound, authRedirectURI)
+		redirectURI := clientRedirectURI + "?error=consent_denied&error_description=Consent denied"
+		logrus.Debugf("Redirecting to %s", redirectURI)
+		c.Redirect(http.StatusFound, redirectURI)
 		return
 	}
 
@@ -123,10 +127,9 @@ func (cc *ConsentController) handlePost(c *gin.Context) {
 	)
 
 	if err != nil {
-		cc.tmpl.Execute(c.Writer, map[string]string{"Error": "Unable to create consent"})
+		c.AbortWithError(http.StatusInternalServerError, errors.New("failed to grant consent"))
 		return
 	}
 
-	logrus.Debugf("Redirecting to %s", authRedirectURI)
 	c.Redirect(http.StatusFound, authRedirectURI)
 }
