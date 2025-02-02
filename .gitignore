@@ -24,3 +24,5 @@ tmp
 .env
 
 .vscode
+
+certs

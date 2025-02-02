@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,17 +20,27 @@ import (
 	"gorm.io/gorm"
 )
 
+type TLSPaths struct {
+	Cert string
+	Key  string
+}
+
 type ServerConfig struct {
 	Database     *gorm.DB
 	Router       *gin.Engine
+	TLSPaths     TLSPaths
 	RedisClient  *redis.Client
 	SessionStore sessions.Store
 }
 
 func NewOAuthServer(config *ServerConfig) OAuthServer {
+	fmt.Println(config.TLSPaths.Cert)
+	fmt.Println(config.TLSPaths.Key)
+	print(os.Getwd())
 	return OAuthServer{
 		database:     config.Database,
 		router:       config.Router,
+		tlsPaths:     config.TLSPaths,
 		redisClient:  config.RedisClient,
 		sessionStore: config.SessionStore,
 	}
@@ -38,6 +49,7 @@ func NewOAuthServer(config *ServerConfig) OAuthServer {
 type OAuthServer struct {
 	database     *gorm.DB
 	router       *gin.Engine
+	tlsPaths     TLSPaths
 	redisClient  *redis.Client
 	sessionStore sessions.Store
 }
@@ -69,7 +81,7 @@ func (s *OAuthServer) Run(ctx context.Context, serveAddress string) {
 	// Initializing the server in a goroutine so that it won't block the graceful shutdown
 	go func() {
 		logrus.Infof("Starting HTTP server on %s", serveAddress)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServeTLS(s.tlsPaths.Cert, s.tlsPaths.Key); err != nil && err != http.ErrServerClosed {
 			logrus.WithError(err).Error("failed to start HTTP server")
 		}
 	}()

@@ -31,6 +31,8 @@ const (
 	sessionLifetimeEnvVar         = "SESSION_LIFETIME"
 	sessionSigningKeyEnvVar       = "SESSION_SIGNING_KEY"
 	sessionEncriptionKeyEnvVar    = "SESSION_ENCRIPTION_KEY"
+	certPathEnvVar                = "TLS_CERT_PATH"
+	keyPathEnvVar                 = "TLS_KEY_PATH"
 )
 
 func main() {
@@ -50,6 +52,8 @@ func main() {
 		sessionLifetime         = os.Getenv(sessionLifetimeEnvVar)
 		sessionSigningKey       = os.Getenv(sessionSigningKeyEnvVar)
 		sessionEncriptionKey    = os.Getenv(sessionEncriptionKeyEnvVar)
+		certPath                = os.Getenv(certPathEnvVar)
+		keyPath                 = os.Getenv(keyPathEnvVar)
 	)
 
 	router := gin.New()
@@ -109,8 +113,12 @@ func main() {
 	)
 
 	serverConfig := server.ServerConfig{
-		Database:     db,
-		Router:       router,
+		Database: db,
+		Router:   router,
+		TLSPaths: server.TLSPaths{
+			Cert: certPath,
+			Key:  keyPath,
+		},
 		RedisClient:  redisClient,
 		SessionStore: sessionStore,
 	}
