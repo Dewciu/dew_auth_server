@@ -15,6 +15,8 @@ servers:
 paths:
   /oauth2/authorize:
     get:
+      tags: 
+      - OAuth2
       summary: OAuth 2.0 Authorization Endpoint
       description: >
         The Authorization Endpoint is used by the client to obtain authorization
@@ -89,6 +91,8 @@ paths:
 
   /oauth2/token:
     post:
+      tags: 
+        - OAuth2
       summary: OAuth 2.0 Token Endpoint
       description: >
         The Token Endpoint is used by the client to exchange an authorization code
@@ -186,6 +190,8 @@ paths:
 
   /oauth2/revoke:
     post:
+      tags: 
+        - OAuth2
       summary: OAuth 2.0 Token Revocation Endpoint
       description: >
         The Token Revocation Endpoint is used by the client to notify the
@@ -223,6 +229,8 @@ paths:
 
   /oauth2/introspect:
     post:
+      tags: 
+        - OAuth2
       summary: OAuth 2.0 Token Introspection Endpoint
       description: >
         The Token Introspection Endpoint allows a protected resource or client
