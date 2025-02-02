@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -34,9 +33,6 @@ type ServerConfig struct {
 }
 
 func NewOAuthServer(config *ServerConfig) OAuthServer {
-	fmt.Println(config.TLSPaths.Cert)
-	fmt.Println(config.TLSPaths.Key)
-	print(os.Getwd())
 	return OAuthServer{
 		database:     config.Database,
 		router:       config.Router,

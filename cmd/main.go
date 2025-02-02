@@ -88,6 +88,7 @@ func main() {
 			Addr: redisAddress,
 		},
 	)
+	defer redisClient.Close()
 
 	sessionStore, err := redisSessions.NewStore(
 		maxIdleConnections,
