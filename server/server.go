@@ -102,7 +102,6 @@ func (s *OAuthServer) migrate() error {
 	err := s.database.AutoMigrate(
 		&models.User{},
 		&models.Client{},
-		&models.AuthorizationCode{},
 		&models.AccessToken{},
 		&models.RefreshToken{},
 		&models.Consent{},

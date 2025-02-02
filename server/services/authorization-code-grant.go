@@ -8,6 +8,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -77,11 +78,13 @@ func (h *AuthorizationCodeGrantService) ObtainAccessToken(ctx context.Context, i
 
 	//TODO: Times and lengths need to be configurable.
 
+	uuidUserID := uuid.MustParse(codeDetails.UserID)
+
 	accessTokenDetails, err := h.accessTokenService.CreateAccessToken(
 		ctx,
 		client.ID,
-		codeDetails.UserID,
-		codeDetails.Scope,
+		uuidUserID,
+		codeDetails.Scopes,
 		32,
 		3600,
 	)
@@ -96,22 +99,14 @@ func (h *AuthorizationCodeGrantService) ObtainAccessToken(ctx context.Context, i
 		ctx,
 		accessTokenDetails.ID,
 		client.ID,
-		codeDetails.UserID,
-		codeDetails.Scope,
+		uuidUserID,
+		codeDetails.Scopes,
 		32,
 		3600,
 	)
 
 	if err != nil {
 		e := errors.New("refresh token creation failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
-	}
-
-	err = h.authCodeService.SetCodeAsUsed(ctx, codeDetails)
-
-	if err != nil {
-		e := errors.New("auth code update failed")
 		logrus.WithError(err).Error(e)
 		return nil, e
 	}

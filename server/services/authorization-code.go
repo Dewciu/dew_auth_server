@@ -6,18 +6,17 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
-	"time"
 
+	"github.com/dewciu/dew_auth_server/server/cachemodels"
+	"github.com/dewciu/dew_auth_server/server/cacherepositories"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/models"
-	"github.com/dewciu/dew_auth_server/server/repositories"
-	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 var _ IAuthorizationCodeService = new(AuthorizationCodeService)
 
 type IAuthorizationCodeService interface {
-	GenerateCode(ctx context.Context) (string, error)
 	GenerateCodeWithPKCE(
 		ctx context.Context,
 		client *models.Client,
@@ -26,37 +25,29 @@ type IAuthorizationCodeService interface {
 		codeChallenge string,
 		codeChallengeMethod string,
 	) (string, error)
-	ValidateCode(ctx context.Context, code string, redirectUri string, clientID string) (*models.AuthorizationCode, error)
-	ValidatePKCE(codeVerifier, codeChallenge, codeChallengeMethod string) error
-	SetCodeAsUsed(ctx context.Context, codeModel *models.AuthorizationCode) error
+
+	ValidateCode(
+		ctx context.Context,
+		code string,
+		redirectUri string,
+		clientID string,
+	) (*cachemodels.AuthorizationCode, error)
+
+	ValidatePKCE(
+		codeVerifier,
+		codeChallenge,
+		codeChallengeMethod string,
+	) error
 }
 
 type AuthorizationCodeService struct {
-	authorizationCodeRepository repositories.IAuthorizationCodeRepository
+	authorizationCodeRepository cacherepositories.IAuthorizationCodeRepository
 }
 
-func NewAuthorizationCodeService(authorizationCodeRepository repositories.IAuthorizationCodeRepository) IAuthorizationCodeService {
+func NewAuthorizationCodeService(authorizationCodeRepository cacherepositories.IAuthorizationCodeRepository) IAuthorizationCodeService {
 	return &AuthorizationCodeService{
 		authorizationCodeRepository: authorizationCodeRepository,
 	}
-}
-
-func (s *AuthorizationCodeService) GenerateCode(ctx context.Context) (string, error) {
-	code, err := generateRandomString(32)
-	if err != nil {
-		return "", err
-	}
-
-	// Save the code in the repository
-	err = s.authorizationCodeRepository.Create(ctx, &models.AuthorizationCode{
-		Code:      code,
-		ExpiresAt: time.Now().Add(10 * time.Minute), // Set appropriate expiration time
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return code, nil
 }
 
 func (s *AuthorizationCodeService) GenerateCodeWithPKCE(
@@ -71,20 +62,19 @@ func (s *AuthorizationCodeService) GenerateCodeWithPKCE(
 		return "", errors.New("code challenge and code challenge method are required")
 	}
 
-	code, err := generateRandomString(32)
+	code, err := generateRandomUrlBase64EncString(32)
 	if err != nil {
 		return "", err
 	}
 
-	//TODO: Expiration times from config
-	err = s.authorizationCodeRepository.Create(ctx, &models.AuthorizationCode{
-		UserID:              uuid.MustParse(userID),
-		Client:              *client,
+	err = s.authorizationCodeRepository.Create(ctx, &cachemodels.AuthorizationCode{
+		UserID:              userID,
 		RedirectURI:         redirectURI,
 		Code:                code,
 		CodeChallenge:       codeChallenge,
 		CodeChallengeMethod: codeChallengeMethod,
-		ExpiresAt:           time.Now().Add(10 * time.Minute), // Set appropriate expiration time
+		ClientID:            client.ID.String(),
+		Scopes:              client.Scopes,
 	})
 	if err != nil {
 		return "", err
@@ -98,7 +88,7 @@ func (s *AuthorizationCodeService) ValidateCode(
 	code string,
 	redirectUri string,
 	clientID string,
-) (*models.AuthorizationCode, error) {
+) (*cachemodels.AuthorizationCode, error) {
 	if code == "" {
 		return nil, errors.New("code is required")
 	}
@@ -108,28 +98,44 @@ func (s *AuthorizationCodeService) ValidateCode(
 		return nil, err
 	}
 
-	currentTime := time.Now()
-
-	if codeDetails.Used {
-		return nil, errors.New("authorization code already used")
-	}
-
-	if codeDetails.ExpiresAt.Before(currentTime) {
-		return nil, errors.New("authorization code expired")
-	}
-
 	if codeDetails.RedirectURI != redirectUri {
-		return nil, errors.New("provided redirect URI does not match the URI associated with authorization code")
+		e := errors.New("provided redirect URI does not match the URI associated with authorization code")
+		logrus.WithField("redirect_uri", redirectUri).WithField("code_redirect_uri", codeDetails.RedirectURI).Error(e)
+		return nil, e
 	}
 
-	if codeDetails.ClientID.String() != clientID {
-		return nil, errors.New("provided client ID does not match the ID associated with authorization code")
+	if codeDetails.ClientID != clientID {
+		e := errors.New("provided client ID does not match the ID associated with authorization code")
+		logrus.WithField("client_id", clientID).WithField("code_client_id", codeDetails.ClientID).Error(e)
+		return nil, e
+	}
+
+	if codeDetails.CodeChallenge == "" {
+		e := errors.New("missing PKCE code challenge in the authorization code data")
+		logrus.Error(e)
+		return nil, e
+	}
+
+	if codeDetails.CodeChallengeMethod == "" {
+		e := errors.New("missing PKCE code challenge method in the authorization code data")
+		logrus.Error(e)
+		return nil, e
+	}
+
+	if codeDetails.Scopes == "" {
+		e := errors.New("missing scopes in the authorization code data")
+		logrus.Error(e)
+		return nil, e
 	}
 
 	return codeDetails, nil
 }
 
-func (s *AuthorizationCodeService) ValidatePKCE(codeVerifier, codeChallenge, codeChallengeMethod string) error {
+func (s *AuthorizationCodeService) ValidatePKCE(
+	codeVerifier,
+	codeChallenge,
+	codeChallengeMethod string,
+) error {
 	if codeVerifier == "" {
 		return errors.New("PKCE code verifier is required")
 	}
@@ -156,12 +162,7 @@ func (s *AuthorizationCodeService) ValidatePKCE(codeVerifier, codeChallenge, cod
 	return nil
 }
 
-func (s *AuthorizationCodeService) SetCodeAsUsed(ctx context.Context, codeModel *models.AuthorizationCode) error {
-	codeModel.Used = true
-	return s.authorizationCodeRepository.Update(ctx, codeModel)
-}
-
-func generateRandomString(length int) (string, error) {
+func generateRandomUrlBase64EncString(length int) (string, error) {
 	bytes := make([]byte, length)
 	_, err := rand.Read(bytes)
 	if err != nil {

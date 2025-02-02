@@ -7,8 +7,10 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/dewciu/dew_auth_server/server"
+	"github.com/dewciu/dew_auth_server/server/cacherepositories"
 	"github.com/dewciu/dew_auth_server/server/controllers"
 	"github.com/dewciu/dew_auth_server/server/repositories"
 	"github.com/dewciu/dew_auth_server/server/services"
@@ -127,7 +129,8 @@ func main() {
 	oauthServer := server.NewOAuthServer(&serverConfig)
 
 	repositories := getRepositories(db)
-	services := getServices(repositories)
+	cacheRepositories := getCacheRepositories(redisClient)
+	services := getServices(repositories, cacheRepositories)
 	controllers := getControllers(templatePath, services)
 
 	oauthServer.Configure(controllers)
@@ -175,11 +178,11 @@ func getControllers(templatePath string, services *services.Services) *controlle
 	}
 }
 
-func getServices(repositories *repositories.Repositories) *services.Services {
+func getServices(repositories *repositories.Repositories, cacheRepositories *cacherepositories.CacheRepositories) *services.Services {
 
 	accessTokenService := services.NewAccessTokenService(repositories.AccessTokenRepository)
 	clientService := services.NewClientService(repositories.ClientRepository)
-	authorizationCodeService := services.NewAuthorizationCodeService(repositories.AuthorizationCodeRepository)
+	authorizationCodeService := services.NewAuthorizationCodeService(cacheRepositories.AuthorizationCodeRepository)
 	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
 	userService := services.NewUserService(repositories.UserRepository)
 	authorizationCodeGrantService := services.NewAuthorizationCodeGrantService(
@@ -211,17 +214,35 @@ func getServices(repositories *repositories.Repositories) *services.Services {
 func getRepositories(db *gorm.DB) *repositories.Repositories {
 	accessTokenRepository := repositories.NewAccessTokenRepository(db)
 	clientRepository := repositories.NewClientRepository(db)
-	authorizationCodeRepository := repositories.NewAuthorizationCodeRepository(db)
 	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
 	userRepository := repositories.NewUserRepository(db)
 	consentRepository := repositories.NewConsentRepository(db)
 
 	return &repositories.Repositories{
-		AccessTokenRepository:       accessTokenRepository,
-		ClientRepository:            clientRepository,
+		AccessTokenRepository:  accessTokenRepository,
+		ClientRepository:       clientRepository,
+		RefreshTokenRepository: refreshTokenRepository,
+		UserRepository:         userRepository,
+		ConsentRepository:      consentRepository,
+	}
+}
+
+func getCacheRepositories(rdClient *redis.Client) *cacherepositories.CacheRepositories {
+	authCodeLifetime := os.Getenv("AUTH_CODE_LIFETIME")
+	//TODO: Consider doing some configuration
+	auth, err := strconv.Atoi(authCodeLifetime)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to convert authCodeLifetime to int: %v", err)
+	}
+
+	lifeTime := time.Duration(auth) * time.Second
+
+	authorizationCodeRepository := cacherepositories.NewAuthorizationCodeRepository(
+		rdClient,
+		lifeTime,
+	)
+
+	return &cacherepositories.CacheRepositories{
 		AuthorizationCodeRepository: authorizationCodeRepository,
-		RefreshTokenRepository:      refreshTokenRepository,
-		UserRepository:              userRepository,
-		ConsentRepository:           consentRepository,
 	}
 }
