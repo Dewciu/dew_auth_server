@@ -58,15 +58,21 @@ func (r *AuthorizationCodeRepository) GetByCode(ctx context.Context, code string
 		return nil, err
 	}
 
-	return &cachemodels.AuthorizationCode{
-		Code:                code,
-		UserID:              data["userID"],
-		ClientID:            data["clientID"],
-		RedirectURI:         data["redirectURI"],
-		Scopes:              data["scopes"],
-		CodeChallenge:       data["codeChallenge"],
-		CodeChallengeMethod: data["codeChallengeMethod"],
-	}, nil
+	authCode, err := cachemodels.NewAuthorizationCode(
+		code,
+		data["userID"],
+		data["clientID"],
+		data["redirectURI"],
+		data["scopes"],
+		data["codeChallenge"],
+		data["codeChallengeMethod"],
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return authCode, nil
 }
 
 func (r *AuthorizationCodeRepository) getData(ctx context.Context, code string) (map[string]string, error) {

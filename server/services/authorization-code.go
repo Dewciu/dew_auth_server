@@ -58,25 +58,26 @@ func (s *AuthorizationCodeService) GenerateCodeWithPKCE(
 	codeChallenge string,
 	codeChallengeMethod string,
 ) (string, error) {
-	if codeChallenge == "" || codeChallengeMethod == "" {
-		return "", errors.New("code challenge and code challenge method are required")
-	}
-
 	code, err := generateRandomUrlBase64EncString(32)
 	if err != nil {
 		return "", err
 	}
 
-	err = s.authorizationCodeRepository.Create(ctx, &cachemodels.AuthorizationCode{
-		UserID:              userID,
-		RedirectURI:         redirectURI,
-		Code:                code,
-		CodeChallenge:       codeChallenge,
-		CodeChallengeMethod: codeChallengeMethod,
-		ClientID:            client.ID.String(),
-		Scopes:              client.Scopes,
-	})
+	authCode, err := cachemodels.NewAuthorizationCode(
+		code,
+		userID,
+		client.ID.String(),
+		redirectURI,
+		client.Scopes,
+		codeChallenge,
+		codeChallengeMethod,
+	)
+
 	if err != nil {
+		return "", err
+	}
+
+	if err = s.authorizationCodeRepository.Create(ctx, authCode); err != nil {
 		return "", err
 	}
 
@@ -107,24 +108,6 @@ func (s *AuthorizationCodeService) ValidateCode(
 	if codeDetails.ClientID != clientID {
 		e := errors.New("provided client ID does not match the ID associated with authorization code")
 		logrus.WithField("client_id", clientID).WithField("code_client_id", codeDetails.ClientID).Error(e)
-		return nil, e
-	}
-
-	if codeDetails.CodeChallenge == "" {
-		e := errors.New("missing PKCE code challenge in the authorization code data")
-		logrus.Error(e)
-		return nil, e
-	}
-
-	if codeDetails.CodeChallengeMethod == "" {
-		e := errors.New("missing PKCE code challenge method in the authorization code data")
-		logrus.Error(e)
-		return nil, e
-	}
-
-	if codeDetails.Scopes == "" {
-		e := errors.New("missing scopes in the authorization code data")
-		logrus.Error(e)
 		return nil, e
 	}
 
