@@ -160,10 +160,6 @@ paths:
                     type: string
                     description: The type of the token (usually `Bearer`).
                     example: Bearer
-                  expires_in:
-                    type: integer
-                    description: Lifetime in seconds of the access token.
-                    example: 3600
                   refresh_token:
                     type: string
                     description: Token to obtain a new access token without user intervention.
@@ -172,6 +168,31 @@ paths:
                     type: string
                     description: The scopes of the access token.
                     example: read write
+                  exp:
+                    type: integer
+                    description: Lifetime in seconds of the access token.
+                    example: 3600
+                  iat:
+                    type: integer
+                    description: Time at which the token was issued, in Unix time.
+                    example: 1672524000
+                  nbf:
+                    type: integer
+                    description: Not-before time for the token.
+                    example: 1672524000
+                  aud:
+                    type: string
+                    description: Intended audience of the token.
+                    example: https://api.example.com
+                  sub:
+                    type: string
+                    description: Subject or user identifier.
+                    example: jdoe
+                  iss:
+                    type: string
+                    description: Issuer identifier for the token.
+                    example: https://your-auth-server.com
+                  
         '4XX':
           description: Invalid request or invalid client credentials
           content:
