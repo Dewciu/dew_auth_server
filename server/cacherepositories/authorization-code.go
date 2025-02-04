@@ -23,10 +23,13 @@ type AuthorizationCodeRepository struct {
 	rdClient  *redis.Client
 }
 
-func NewAuthorizationCodeRepository(rdClient *redis.Client, ttl time.Duration) IAuthorizationCodeRepository {
+func NewAuthorizationCodeRepository(rdClient *redis.Client, ttl int) IAuthorizationCodeRepository {
+
+	timeToLive := time.Duration(ttl) * time.Second
+
 	return &AuthorizationCodeRepository{
 		keyPrefix: "authorization_code:",
-		ttl:       ttl,
+		ttl:       timeToLive,
 		rdClient:  rdClient,
 	}
 }

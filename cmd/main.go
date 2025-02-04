@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"time"
 
 	"github.com/dewciu/dew_auth_server/server"
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
@@ -180,7 +179,7 @@ func getControllers(templatePath string, services *services.Services) *controlle
 
 func getServices(repositories *repositories.Repositories, cacheRepositories *cacherepositories.CacheRepositories) *services.Services {
 
-	accessTokenService := services.NewAccessTokenService(repositories.AccessTokenRepository)
+	accessTokenService := services.NewAccessTokenService(cacheRepositories.AccessTokenRepository)
 	clientService := services.NewClientService(repositories.ClientRepository)
 	authorizationCodeService := services.NewAuthorizationCodeService(cacheRepositories.AuthorizationCodeRepository)
 	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
@@ -212,14 +211,12 @@ func getServices(repositories *repositories.Repositories, cacheRepositories *cac
 }
 
 func getRepositories(db *gorm.DB) *repositories.Repositories {
-	accessTokenRepository := repositories.NewAccessTokenRepository(db)
 	clientRepository := repositories.NewClientRepository(db)
 	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
 	userRepository := repositories.NewUserRepository(db)
 	consentRepository := repositories.NewConsentRepository(db)
 
 	return &repositories.Repositories{
-		AccessTokenRepository:  accessTokenRepository,
 		ClientRepository:       clientRepository,
 		RefreshTokenRepository: refreshTokenRepository,
 		UserRepository:         userRepository,
@@ -229,20 +226,30 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 
 func getCacheRepositories(rdClient *redis.Client) *cacherepositories.CacheRepositories {
 	authCodeLifetime := os.Getenv("AUTH_CODE_LIFETIME")
+	accessTokenLifetime := os.Getenv("ACCESS_TOKEN_LIFETIME")
 	//TODO: Consider doing some configuration
-	auth, err := strconv.Atoi(authCodeLifetime)
+	authCodeLifetimeInt, err := strconv.Atoi(authCodeLifetime)
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to convert authCodeLifetime to int: %v", err)
 	}
 
-	lifeTime := time.Duration(auth) * time.Second
+	accessTokenLifetimeInt, err := strconv.Atoi(accessTokenLifetime)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to convert accessTokenLifetime to int: %v", err)
+	}
 
 	authorizationCodeRepository := cacherepositories.NewAuthorizationCodeRepository(
 		rdClient,
-		lifeTime,
+		authCodeLifetimeInt,
+	)
+
+	accessTokenRepository := cacherepositories.NewAccessTokenRepository(
+		rdClient,
+		accessTokenLifetimeInt,
 	)
 
 	return &cacherepositories.CacheRepositories{
 		AuthorizationCodeRepository: authorizationCodeRepository,
+		AccessTokenRepository:       accessTokenRepository,
 	}
 }

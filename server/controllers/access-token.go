@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -60,6 +61,8 @@ func (atc AccessTokenController) handleAuthorizationCodeGrant(c *gin.Context) {
 		return
 	}
 
+	jsonOutput, _ := json.MarshalIndent(output, "", "  ")
+	fmt.Println(string(jsonOutput))
 	c.JSON(http.StatusCreated, output)
 }
 

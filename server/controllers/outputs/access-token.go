@@ -1,41 +1,15 @@
 package outputs
 
-import "github.com/google/uuid"
-
-var _ IAccessTokenOutput = new(AuthorizationCodeGrantOutput)
-
-type IAccessTokenOutput interface {
-	GetAccessToken() string
-	GetTokenType() string
-	GetExpiresIn() int
-	GetScope() string
-}
+import (
+	"github.com/dewciu/dew_auth_server/server/cachemodels"
+)
 
 type AccessTokenOutput struct {
-	ID          uuid.UUID `json:"-"`
-	AccessToken string    `json:"access_token" name:"access_token" binding:"required"`
-	TokenType   string    `json:"token_type" name:"token_type" binding:"required"`
-	ExpiresIn   int       `json:"expires_in" name:"expires_in" binding:"required"`
-	Scope       string    `json:"scope" name:"scope" binding:"required"`
-}
-
-func (i AccessTokenOutput) GetAccessToken() string {
-	return i.AccessToken
-}
-
-func (i AccessTokenOutput) GetTokenType() string {
-	return i.TokenType
-}
-
-func (i AccessTokenOutput) GetExpiresIn() int {
-	return i.ExpiresIn
-}
-
-func (i AccessTokenOutput) GetScope() string {
-	return i.Scope
+	cachemodels.AccessToken
+	Active bool `json:"active"`
 }
 
 type AuthorizationCodeGrantOutput struct {
 	AccessTokenOutput
-	RefreshToken string `json:"refresh_token" name:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token"`
 }

@@ -14,8 +14,7 @@ type RefreshToken struct {
 	ClientID      uuid.UUID `gorm:"type:uuid;not null"`
 	AccessTokenID uuid.UUID `gorm:"type:uuid;not null"`
 	Scope         string
-	ExpiresAt     time.Time   `gorm:"not null"`
-	User          User        `gorm:"foreignKey:UserID"`
-	Client        Client      `gorm:"foreignKey:ClientID"`
-	AccessToken   AccessToken `gorm:"foreignKey:AccessTokenID"`
+	ExpiresAt     time.Time `gorm:"not null"`
+	User          User      `gorm:"foreignKey:UserID"`
+	Client        Client    `gorm:"foreignKey:ClientID"`
 }

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/dewciu/dew_auth_server/server/cachemodels"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,6 +43,7 @@ func NewAuthorizationCodeGrantService(
 
 func (h *AuthorizationCodeGrantService) ObtainAccessToken(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.AuthorizationCodeGrantOutput, error) {
 	var output *outputs.AuthorizationCodeGrantOutput
+	var accessToken *cachemodels.AccessToken
 
 	client, err := h.clientService.VerifyClientSecret(ctx, input.ClientID, input.ClientSecret)
 
@@ -76,44 +77,53 @@ func (h *AuthorizationCodeGrantService) ObtainAccessToken(ctx context.Context, i
 		return nil, err
 	}
 
-	//TODO: Times and lengths need to be configurable.
-
-	uuidUserID := uuid.MustParse(codeDetails.UserID)
-
-	accessTokenDetails, err := h.accessTokenService.CreateAccessToken(
-		ctx,
-		client.ID,
-		uuidUserID,
-		codeDetails.Scopes,
-		32,
-		3600,
-	)
-
+	accessToken, err = h.accessTokenService.GetExistingAccessToken(ctx, client.ID.String(), codeDetails.UserID)
 	if err != nil {
-		e := errors.New("access token creation failed")
+		e := errors.New("failed to get existing access token")
 		logrus.WithError(err).Error(e)
 		return nil, e
 	}
 
-	refreshToken, err := h.refreshTokenService.CreateRefreshToken(
-		ctx,
-		accessTokenDetails.ID,
-		client.ID,
-		uuidUserID,
-		codeDetails.Scopes,
-		32,
-		3600,
-	)
+	if accessToken == nil {
+		//TODO: Lengths need to be configurable.
+		accessToken, err = h.accessTokenService.CreateAccessToken(
+			ctx,
+			client,
+			codeDetails.UserID,
+			codeDetails.Scopes,
+			32,
+		)
 
-	if err != nil {
-		e := errors.New("refresh token creation failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
+		if err != nil {
+			e := errors.New("access token creation failed")
+			logrus.WithError(err).Error(e)
+			return nil, e
+		}
 	}
+
+	accessTokenOutput := outputs.AccessTokenOutput{
+		Active:      true,
+		AccessToken: *accessToken,
+	}
+
+	// refreshToken, err := h.refreshTokenService.CreateRefreshToken(
+	// 	ctx,
+	// 	client.ID,
+	// 	uuidUserID,
+	// 	codeDetails.Scopes,
+	// 	32,
+	// 	3600,
+	// )
+
+	// if err != nil {
+	// 	e := errors.New("refresh token creation failed")
+	// 	logrus.WithError(err).Error(e)
+	// 	return nil, e
+	// }
 
 	output = &outputs.AuthorizationCodeGrantOutput{
-		AccessTokenOutput: *accessTokenDetails,
-		RefreshToken:      refreshToken,
+		AccessTokenOutput: accessTokenOutput,
+		// RefreshToken:      refreshToken,
 	}
 
 	return output, nil
