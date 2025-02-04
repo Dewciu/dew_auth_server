@@ -34,8 +34,5 @@ func (a *AccessToken) Validate() error {
 	if a.TokenType == "" {
 		return &cacheerrors.MissingTokenTypeError{}
 	}
-	if a.ExpiresIn == 0 {
-		return &cacheerrors.MissingExpiresInError{}
-	}
 	return nil
 }
