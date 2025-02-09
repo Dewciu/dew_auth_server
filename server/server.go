@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -110,12 +108,6 @@ func (s *OAuthServer) migrate() error {
 }
 
 func (s *OAuthServer) setMiddleware() {
-	if _, err := os.Stat("server/controllers/templates/styles/styles.css"); errors.Is(err, os.ErrNotExist) {
-		// path/to/whatever does not exist
-		fmt.Println("File does not exist")
-	} else {
-		fmt.Println("File exists")
-	}
 	s.router.Static("/oauth2/styles", "server/controllers/templates/styles")
 	s.router.Use(gin.LoggerWithWriter(logrus.StandardLogger().Out))
 	s.router.Use(sessions.Sessions("session", s.sessionStore))

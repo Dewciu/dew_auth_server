@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"html/template"
 
 	"github.com/gin-gonic/gin"
@@ -19,5 +18,4 @@ func NewIndexController(templatePath string) IndexController {
 
 func (ic *IndexController) IndexHandler(c *gin.Context) {
 	ic.tmpl.Execute(c.Writer, nil)
-	fmt.Println("Index page")
 }
