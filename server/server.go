@@ -123,8 +123,8 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	}, swaggerFiles.Handler))
 
 	s.router.GET("", controllers.IndexController.IndexHandler)
-	s.router.GET(AllEndpoints.RegisterUser, controllers.UserRegisterController.RegisterHandler)
-	s.router.POST(AllEndpoints.RegisterUser, controllers.UserRegisterController.RegisterHandler)
+	s.router.GET(AllEndpoints.Oauth2RegisterUser, controllers.UserRegisterController.RegisterHandler)
+	s.router.POST(AllEndpoints.Oauth2RegisterUser, controllers.UserRegisterController.RegisterHandler)
 	s.router.GET(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
 	s.router.POST(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
 	s.router.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
@@ -132,8 +132,8 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	authedGroup := s.router.Group("", middleware.SessionValidate(AllEndpoints.OAuth2Login))
 
 	authedGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
-	authedGroup.GET(AllEndpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
-	authedGroup.POST(AllEndpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	authedGroup.GET(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	authedGroup.POST(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
 	authedGroup.GET(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 	authedGroup.POST(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 }
