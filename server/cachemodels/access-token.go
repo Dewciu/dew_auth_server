@@ -1,6 +1,8 @@
 package cachemodels
 
 import (
+	"time"
+
 	"github.com/dewciu/dew_auth_server/server/cacheerrors"
 	"github.com/dewciu/dew_auth_server/server/constants"
 )
@@ -69,4 +71,16 @@ func (a *AccessToken) SetSubject(subject string) {
 
 func (a *AccessToken) SetIssuer(issuer string) {
 	a.Issuer = issuer
+}
+
+func (a *AccessToken) SetExpiration(expiresIn time.Duration) {
+	a.ExpiresIn = int(time.Now().Add(expiresIn).Unix())
+}
+
+func (a *AccessToken) SetIssuedTimeForNow() {
+	a.IssuedAt = int(time.Now().Unix())
+}
+
+func (a *AccessToken) SetNotBeforeForNow() {
+	a.NotBefore = int(time.Now().Unix())
 }

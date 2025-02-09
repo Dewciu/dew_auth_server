@@ -43,17 +43,17 @@ func (r *AccessTokenRepository) Create(ctx context.Context, tokenData *cachemode
 	key := r.keyPrefix + tokenData.Token
 
 	if tokenData.ExpiresIn == 0 {
-		tokenData.ExpiresIn = int(time.Now().Add(r.ttl).Unix())
+		tokenData.SetExpiration(r.ttl)
 	}
 
 	expTime := time.Until(time.Unix(int64(tokenData.ExpiresIn), 0))
 
 	if tokenData.IssuedAt == 0 {
-		tokenData.IssuedAt = int(time.Now().Unix())
+		tokenData.SetIssuedTimeForNow()
 	}
 
 	if tokenData.NotBefore == 0 {
-		tokenData.NotBefore = int(time.Now().Unix())
+		tokenData.SetNotBeforeForNow()
 	}
 
 	if err := r.rdClient.HMSet(ctx, key, map[string]interface{}{
