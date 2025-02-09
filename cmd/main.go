@@ -182,7 +182,7 @@ func getServices(repositories *repositories.Repositories, cacheRepositories *cac
 	accessTokenService := services.NewAccessTokenService(cacheRepositories.AccessTokenRepository)
 	clientService := services.NewClientService(repositories.ClientRepository)
 	authorizationCodeService := services.NewAuthorizationCodeService(cacheRepositories.AuthorizationCodeRepository)
-	refreshTokenService := services.NewRefreshTokenService(repositories.RefreshTokenRepository)
+	refreshTokenService := services.NewRefreshTokenService(cacheRepositories.RefreshTokenRepository)
 	userService := services.NewUserService(repositories.UserRepository)
 	authorizationCodeGrantService := services.NewAuthorizationCodeGrantService(
 		accessTokenService,
@@ -212,22 +212,22 @@ func getServices(repositories *repositories.Repositories, cacheRepositories *cac
 
 func getRepositories(db *gorm.DB) *repositories.Repositories {
 	clientRepository := repositories.NewClientRepository(db)
-	refreshTokenRepository := repositories.NewRefreshTokenRepository(db)
 	userRepository := repositories.NewUserRepository(db)
 	consentRepository := repositories.NewConsentRepository(db)
 
 	return &repositories.Repositories{
-		ClientRepository:       clientRepository,
-		RefreshTokenRepository: refreshTokenRepository,
-		UserRepository:         userRepository,
-		ConsentRepository:      consentRepository,
+		ClientRepository:  clientRepository,
+		UserRepository:    userRepository,
+		ConsentRepository: consentRepository,
 	}
 }
 
 func getCacheRepositories(rdClient *redis.Client) *cacherepositories.CacheRepositories {
 	authCodeLifetime := os.Getenv("AUTH_CODE_LIFETIME")
 	accessTokenLifetime := os.Getenv("ACCESS_TOKEN_LIFETIME")
-	//TODO: Consider doing some configuration
+	refreshTokenLifetime := os.Getenv("REFRESH_TOKEN_LIFETIME")
+
+	//TODO: Consider doing some external configuration
 	authCodeLifetimeInt, err := strconv.Atoi(authCodeLifetime)
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to convert authCodeLifetime to int: %v", err)
@@ -236,6 +236,11 @@ func getCacheRepositories(rdClient *redis.Client) *cacherepositories.CacheReposi
 	accessTokenLifetimeInt, err := strconv.Atoi(accessTokenLifetime)
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to convert accessTokenLifetime to int: %v", err)
+	}
+
+	refreshTokenLifetimeInt, err := strconv.Atoi(refreshTokenLifetime)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to convert refreshTokenLifetime to int: %v", err)
 	}
 
 	authorizationCodeRepository := cacherepositories.NewAuthorizationCodeRepository(
@@ -248,8 +253,14 @@ func getCacheRepositories(rdClient *redis.Client) *cacherepositories.CacheReposi
 		accessTokenLifetimeInt,
 	)
 
+	refreshTokenRepository := cacherepositories.NewRefreshTokenRepository(
+		rdClient,
+		refreshTokenLifetimeInt,
+	)
+
 	return &cacherepositories.CacheRepositories{
 		AuthorizationCodeRepository: authorizationCodeRepository,
 		AccessTokenRepository:       accessTokenRepository,
+		RefreshTokenRepository:      refreshTokenRepository,
 	}
 }

@@ -5,11 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"time"
 
-	"github.com/dewciu/dew_auth_server/server/models"
-	"github.com/dewciu/dew_auth_server/server/repositories"
-	"github.com/google/uuid"
+	"github.com/dewciu/dew_auth_server/server/cachemodels"
+	"github.com/dewciu/dew_auth_server/server/cacherepositories"
+	"github.com/sirupsen/logrus"
 )
 
 var _ IRefreshTokenService = new(RefreshTokenService)
@@ -18,19 +17,18 @@ type IRefreshTokenService interface {
 	GenerateOpaqueToken(length int) (string, error)
 	CreateRefreshToken(
 		ctx context.Context,
-		clientID uuid.UUID,
-		userID uuid.UUID,
+		clientID string,
+		userID string,
 		scope string,
 		tokenLength int,
-		expirationTime time.Duration,
 	) (string, error)
 }
 
 type RefreshTokenService struct {
-	refreshTokenRepository repositories.IRefreshTokenRepository
+	refreshTokenRepository cacherepositories.IRefreshTokenRepository
 }
 
-func NewRefreshTokenService(refreshTokenRepository repositories.IRefreshTokenRepository) IRefreshTokenService {
+func NewRefreshTokenService(refreshTokenRepository cacherepositories.IRefreshTokenRepository) IRefreshTokenService {
 	return &RefreshTokenService{
 		refreshTokenRepository: refreshTokenRepository,
 	}
@@ -53,11 +51,10 @@ func (s *RefreshTokenService) GenerateOpaqueToken(length int) (string, error) {
 
 func (s *RefreshTokenService) CreateRefreshToken(
 	ctx context.Context,
-	clientID uuid.UUID,
-	userID uuid.UUID,
+	clientID string,
+	userID string,
 	scope string,
 	tokenLength int,
-	expirationTime time.Duration,
 ) (string, error) {
 
 	token, err := s.GenerateOpaqueToken(tokenLength)
@@ -66,12 +63,26 @@ func (s *RefreshTokenService) CreateRefreshToken(
 		return "", err
 	}
 
-	tokenRecord := &models.RefreshToken{
-		ClientID:  clientID,
-		Scope:     scope,
-		UserID:    userID,
-		ExpiresAt: time.Now().Add(expirationTime),
-		Token:     token,
+	existingRefreshToken, err := s.GetExistingRefreshToken(ctx, clientID, userID)
+	if err != nil {
+		e := errors.New("failed to get existing refresh token")
+		logrus.WithError(err).Error(e)
+		return "", e
+	}
+
+	if existingRefreshToken != nil {
+		return existingRefreshToken.Token, nil
+	}
+
+	tokenRecord, err := cachemodels.NewRefreshToken(
+		token,
+		scope,
+		clientID,
+		userID,
+	)
+
+	if err != nil {
+		return "", err
 	}
 
 	if err := s.refreshTokenRepository.Create(ctx, tokenRecord); err != nil {
@@ -79,4 +90,34 @@ func (s *RefreshTokenService) CreateRefreshToken(
 	}
 
 	return token, nil
+}
+
+func (s *RefreshTokenService) GetExistingRefreshToken(ctx context.Context, clientID string, userID string) (*cachemodels.RefreshToken, error) {
+	tokens, err := s.refreshTokenRepository.GetByUserAndClient(ctx, userID, clientID)
+
+	for index, token := range tokens {
+		if !token.IsActive() {
+			//Delete the token from the slice
+			tokens = append(tokens[:index], tokens[index+1:]...)
+		}
+	}
+
+	if err != nil {
+		e := errors.New("failed to get refresh tokens by user and client index")
+		logrus.WithError(err).Error(e)
+		return nil, err
+	}
+
+	if len(tokens) == 0 {
+		logrus.Info("no valid refresh tokens found for user and client")
+		return nil, nil
+	}
+
+	if len(tokens) > 1 {
+		e := errors.New("multiple active refresh tokens found for user and client")
+		logrus.Error(e)
+		return nil, e
+	}
+
+	return tokens[0], nil
 }

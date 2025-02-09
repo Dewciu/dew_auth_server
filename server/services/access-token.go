@@ -67,6 +67,17 @@ func (s *AccessTokenService) CreateAccessToken(
 		return nil, e
 	}
 
+	existingAccessToken, err := s.GetExistingAccessToken(ctx, client.ID.String(), userID)
+	if err != nil {
+		e := errors.New("failed to get existing access token")
+		logrus.WithError(err).Error(e)
+		return nil, e
+	}
+
+	if existingAccessToken != nil {
+		return existingAccessToken, nil
+	}
+
 	tokenRecord, err := cachemodels.NewBearerAccessToken(
 		token,
 		scopes,

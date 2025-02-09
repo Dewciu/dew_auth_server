@@ -77,28 +77,18 @@ func (h *AuthorizationCodeGrantService) ObtainAccessToken(ctx context.Context, i
 		return nil, err
 	}
 
-	accessToken, err = h.accessTokenService.GetExistingAccessToken(ctx, client.ID.String(), codeDetails.UserID)
+	accessToken, err = h.accessTokenService.CreateAccessToken(
+		ctx,
+		client,
+		codeDetails.UserID,
+		codeDetails.Scopes,
+		64,
+	)
+
 	if err != nil {
-		e := errors.New("failed to get existing access token")
+		e := errors.New("access token creation failed")
 		logrus.WithError(err).Error(e)
 		return nil, e
-	}
-
-	if accessToken == nil {
-		//TODO: Lengths need to be configurable.
-		accessToken, err = h.accessTokenService.CreateAccessToken(
-			ctx,
-			client,
-			codeDetails.UserID,
-			codeDetails.Scopes,
-			32,
-		)
-
-		if err != nil {
-			e := errors.New("access token creation failed")
-			logrus.WithError(err).Error(e)
-			return nil, e
-		}
 	}
 
 	accessTokenOutput := outputs.AccessTokenOutput{
@@ -106,24 +96,23 @@ func (h *AuthorizationCodeGrantService) ObtainAccessToken(ctx context.Context, i
 		AccessToken: *accessToken,
 	}
 
-	// refreshToken, err := h.refreshTokenService.CreateRefreshToken(
-	// 	ctx,
-	// 	client.ID,
-	// 	uuidUserID,
-	// 	codeDetails.Scopes,
-	// 	32,
-	// 	3600,
-	// )
+	refreshToken, err := h.refreshTokenService.CreateRefreshToken(
+		ctx,
+		client.ID.String(),
+		codeDetails.UserID,
+		codeDetails.Scopes,
+		32,
+	)
 
-	// if err != nil {
-	// 	e := errors.New("refresh token creation failed")
-	// 	logrus.WithError(err).Error(e)
-	// 	return nil, e
-	// }
+	if err != nil {
+		e := errors.New("refresh token creation failed")
+		logrus.WithError(err).Error(e)
+		return nil, e
+	}
 
 	output = &outputs.AuthorizationCodeGrantOutput{
 		AccessTokenOutput: accessTokenOutput,
-		// RefreshToken:      refreshToken,
+		RefreshToken:      refreshToken,
 	}
 
 	return output, nil

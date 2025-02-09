@@ -62,3 +62,7 @@ func (a *RefreshToken) SetExpiration(expiresIn time.Duration) {
 func (a *RefreshToken) SetIssuedTimeForNow() {
 	a.IssuedAt = int(time.Now().Unix())
 }
+
+func (a *RefreshToken) IsActive() bool {
+	return !a.Revoked && time.Now().Unix() < int64(a.ExpiresIn)
+}

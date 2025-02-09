@@ -7,39 +7,38 @@ import (
 	"time"
 
 	"github.com/dewciu/dew_auth_server/server/cachemodels"
-	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
-var _ IAccessTokenRepository = new(AccessTokenRepository)
+var _ IRefreshTokenRepository = new(RefreshTokenRepository)
 
-type IAccessTokenRepository interface {
-	Create(ctx context.Context, tokenData *cachemodels.AccessToken) error
-	GetByToken(ctx context.Context, token string) (*cachemodels.AccessToken, error)
-	GetByUserAndClient(ctx context.Context, userID string, clientID string) ([]*cachemodels.AccessToken, error)
+type IRefreshTokenRepository interface {
+	Create(ctx context.Context, tokenData *cachemodels.RefreshToken) error
+	GetByToken(ctx context.Context, token string) (*cachemodels.RefreshToken, error)
+	GetByUserAndClient(ctx context.Context, userID string, clientID string) ([]*cachemodels.RefreshToken, error)
 }
 
-type AccessTokenRepository struct {
+type RefreshTokenRepository struct {
 	keyPrefix          string
 	usrClientIdxPrefix string
 	ttl                time.Duration
 	rdClient           *redis.Client
 }
 
-func NewAccessTokenRepository(rdClient *redis.Client, ttl int) IAccessTokenRepository {
+func NewRefreshTokenRepository(rdClient *redis.Client, ttl int) IRefreshTokenRepository {
 
 	timeToLive := time.Duration(ttl) * time.Second
 
-	return &AccessTokenRepository{
-		keyPrefix:          "access_token:",
-		usrClientIdxPrefix: "at_user_client_index:",
+	return &RefreshTokenRepository{
+		keyPrefix:          "refresh_token:",
+		usrClientIdxPrefix: "rt_user_client_index:",
 		ttl:                timeToLive,
 		rdClient:           rdClient,
 	}
 }
 
-func (r *AccessTokenRepository) Create(ctx context.Context, tokenData *cachemodels.AccessToken) error {
+func (r *RefreshTokenRepository) Create(ctx context.Context, tokenData *cachemodels.RefreshToken) error {
 	key := r.keyPrefix + tokenData.Token
 
 	if tokenData.ExpiresIn == 0 {
@@ -52,21 +51,12 @@ func (r *AccessTokenRepository) Create(ctx context.Context, tokenData *cachemode
 		tokenData.SetIssuedTimeForNow()
 	}
 
-	if tokenData.NotBefore == 0 {
-		tokenData.SetNotBeforeForNow()
-	}
-
 	if err := r.rdClient.HMSet(ctx, key, map[string]interface{}{
-		"tokenType": string(tokenData.TokenType),
-		"clientID":  tokenData.ClientID,
-		"userID":    tokenData.UserID,
-		"scopes":    tokenData.Scopes,
-		"exp":       tokenData.ExpiresIn,
-		"iat":       tokenData.IssuedAt,
-		"nbf":       tokenData.NotBefore,
-		"aud":       tokenData.Audience,
-		"sub":       tokenData.Subject,
-		"iss":       tokenData.Issuer,
+		"clientID": tokenData.ClientID,
+		"userID":   tokenData.UserID,
+		"scopes":   tokenData.Scopes,
+		"exp":      tokenData.ExpiresIn,
+		"iat":      tokenData.IssuedAt,
 	}).Err(); err != nil {
 		e := errors.New("failed to create access token")
 		logrus.WithError(err).Error(e)
@@ -82,7 +72,7 @@ func (r *AccessTokenRepository) Create(ctx context.Context, tokenData *cachemode
 	return r.rdClient.Expire(ctx, key, expTime).Err()
 }
 
-func (r *AccessTokenRepository) GetByToken(ctx context.Context, token string) (*cachemodels.AccessToken, error) {
+func (r *RefreshTokenRepository) GetByToken(ctx context.Context, token string) (*cachemodels.RefreshToken, error) {
 
 	data, err := r.getDataByToken(ctx, token)
 
@@ -90,7 +80,6 @@ func (r *AccessTokenRepository) GetByToken(ctx context.Context, token string) (*
 		return nil, err
 	}
 
-	tokenType := constants.TokenType(data["tokenType"])
 	exp, err := strconv.Atoi(data["exp"])
 	if err != nil {
 		e := errors.New("failed to parse expiration time")
@@ -105,37 +94,25 @@ func (r *AccessTokenRepository) GetByToken(ctx context.Context, token string) (*
 		return nil, e
 	}
 
-	nbf, err := strconv.Atoi(data["nbf"])
-	if err != nil {
-		e := errors.New("failed to parse not before time")
-		logrus.WithError(err).Error(e)
-		return nil, e
-	}
-
-	accessToken := &cachemodels.AccessToken{
+	RefreshToken := &cachemodels.RefreshToken{
 		Token:     token,
 		Scopes:    data["scopes"],
 		ClientID:  data["clientID"],
 		UserID:    data["userID"],
-		TokenType: tokenType,
 		ExpiresIn: exp,
 		IssuedAt:  iss,
-		NotBefore: nbf,
-		Audience:  data["aud"],
-		Subject:   data["sub"],
-		Issuer:    data["iss"],
 	}
 
-	return accessToken, nil
+	return RefreshToken, nil
 }
 
-func (r *AccessTokenRepository) GetByUserAndClient(ctx context.Context, userID string, clientID string) ([]*cachemodels.AccessToken, error) {
+func (r *RefreshTokenRepository) GetByUserAndClient(ctx context.Context, userID string, clientID string) ([]*cachemodels.RefreshToken, error) {
 
 	key := r.getFullUserClientIndexKey(userID, clientID)
 
 	tokensFromIndex, err := r.rdClient.SMembers(ctx, key).Result()
 
-	tokens := make([]*cachemodels.AccessToken, 0)
+	tokens := make([]*cachemodels.RefreshToken, 0)
 
 	if err != nil {
 		e := errors.New("failed to get access tokens by user and client index")
@@ -149,19 +126,19 @@ func (r *AccessTokenRepository) GetByUserAndClient(ctx context.Context, userID s
 	}
 
 	for _, token := range tokensFromIndex {
-		accessToken, err := r.GetByToken(ctx, token)
+		RefreshToken, err := r.GetByToken(ctx, token)
 
 		if err != nil {
 			continue
 		}
 
-		tokens = append(tokens, accessToken)
+		tokens = append(tokens, RefreshToken)
 	}
 
 	return tokens, nil
 }
 
-func (r *AccessTokenRepository) getDataByToken(ctx context.Context, token string) (map[string]string, error) {
+func (r *RefreshTokenRepository) getDataByToken(ctx context.Context, token string) (map[string]string, error) {
 	key := r.keyPrefix + token
 
 	data, err := r.rdClient.HGetAll(ctx, key).Result()
@@ -181,7 +158,7 @@ func (r *AccessTokenRepository) getDataByToken(ctx context.Context, token string
 	return data, nil
 }
 
-func (r *AccessTokenRepository) createUserClientIndex(ctx context.Context, userID string, clientID string, token string, expTime time.Duration) error {
+func (r *RefreshTokenRepository) createUserClientIndex(ctx context.Context, userID string, clientID string, token string, expTime time.Duration) error {
 	key := r.getFullUserClientIndexKey(userID, clientID)
 
 	if err := r.rdClient.SAdd(ctx, key, token).Err(); err != nil {
@@ -191,6 +168,6 @@ func (r *AccessTokenRepository) createUserClientIndex(ctx context.Context, userI
 	return r.rdClient.Expire(ctx, key, expTime).Err()
 }
 
-func (r *AccessTokenRepository) getFullUserClientIndexKey(userID string, clientID string) string {
+func (r *RefreshTokenRepository) getFullUserClientIndexKey(userID string, clientID string) string {
 	return r.usrClientIdxPrefix + "userID:" + userID + ":clientID:" + clientID
 }
