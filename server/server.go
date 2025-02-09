@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,7 +14,6 @@ import (
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -28,7 +29,6 @@ type ServerConfig struct {
 	Database     *gorm.DB
 	Router       *gin.Engine
 	TLSPaths     TLSPaths
-	RedisClient  *redis.Client
 	SessionStore sessions.Store
 }
 
@@ -37,7 +37,6 @@ func NewOAuthServer(config *ServerConfig) OAuthServer {
 		database:     config.Database,
 		router:       config.Router,
 		tlsPaths:     config.TLSPaths,
-		redisClient:  config.RedisClient,
 		sessionStore: config.SessionStore,
 	}
 }
@@ -46,7 +45,6 @@ type OAuthServer struct {
 	database     *gorm.DB
 	router       *gin.Engine
 	tlsPaths     TLSPaths
-	redisClient  *redis.Client
 	sessionStore sessions.Store
 }
 
@@ -112,6 +110,13 @@ func (s *OAuthServer) migrate() error {
 }
 
 func (s *OAuthServer) setMiddleware() {
+	if _, err := os.Stat("server/controllers/templates/styles/styles.css"); errors.Is(err, os.ErrNotExist) {
+		// path/to/whatever does not exist
+		fmt.Println("File does not exist")
+	} else {
+		fmt.Println("File exists")
+	}
+	s.router.Static("/oauth2/styles", "server/controllers/templates/styles")
 	s.router.Use(gin.LoggerWithWriter(logrus.StandardLogger().Out))
 	s.router.Use(sessions.Sessions("session", s.sessionStore))
 }
@@ -133,7 +138,6 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	s.router.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
 
 	authedGroup := s.router.Group("", middleware.SessionValidate(AllEndpoints.OAuth2Login))
-	authedGroup.Use(middleware.AddRedisClientToContext(s.redisClient))
 
 	authedGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
 	authedGroup.GET(AllEndpoints.RegisterClient, controllers.ClientRegisterController.RegisterHandler)

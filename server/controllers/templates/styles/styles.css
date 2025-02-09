@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    background: radial-gradient(circle, #1a1a2e, #0f0c29);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    color: #fff;
+    text-align: center;
+}
+
+.container {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+    width: 100%;
+    max-width: 350px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, #0ff, #00f, #f0f, #0ff);
+    animation: neon-border 3s linear infinite;
+    z-index: -1;
+}
+
+@keyframes neon-border {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 8px cyan;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: cyan;
+    text-align: left;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"] {
+    width: 90%;
+    padding: 10px;
+    margin-bottom: 12px;
+    border-radius: 5px;
+    border: 1px solid cyan;
+    background: rgba(0, 0, 0, 0.8);
+    color: cyan;
+    font-size: 16px;
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+}
+
+button[type="submit"] {
+    width: 80%;
+    padding: 12px;
+    background: linear-gradient(90deg, black, rgb(89, 1, 89));
+    color: cyan;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    text-transform: uppercase;
+    transition: 0.3s;
+    box-shadow: 0 0 12px cyan;
+    font-weight: bold;
+}
+
+button[type="submit"]:hover {
+    background: linear-gradient(90deg, blue, cyan);
+    box-shadow: 0 0 20px cyan;
+}
+
+.error {
+    color: #ff4b5c;
+    margin-bottom: 8px;
+    text-shadow: 0 0 8px red;
+}
+
+.success {
+    color: #5cb85c;
+    margin-bottom: 8px;
+    text-shadow: 0 0 8px lime;
+}
+
+input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px rgb(0, 0, 0) inset;
+    box-shadow: 0 0 0 1000px rgb(0, 0, 0) inset;
+    -webkit-text-fill-color: cyan;
+}

@@ -121,7 +121,6 @@ func main() {
 			Cert: certPath,
 			Key:  keyPath,
 		},
-		RedisClient:  redisClient,
 		SessionStore: sessionStore,
 	}
 

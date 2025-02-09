@@ -12,8 +12,8 @@ type Endpoints struct {
 var AllEndpoints = Endpoints{
 	OAuth2Token:     "/oauth2/token",
 	OAuth2Authorize: "/oauth2/authorize",
-	RegisterClient:  "/register-client",
-	RegisterUser:    "/register-user",
+	RegisterClient:  "/oauth2/register-client",
+	RegisterUser:    "/oauth2/register-user",
 	OAuth2Login:     "/oauth2/login",
 	OAuth2Consent:   "/oauth2/consent",
 }

@@ -3,18 +3,9 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+    <link rel="stylesheet" href="./styles/styles.css">
     <title>Consent</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
         .consent-container {
             max-width: 400px;
             width: 100%;
@@ -26,12 +17,6 @@
         }
         .consent-container:hover {
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-        }
-        h1 {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 15px;
-            color: #333;
         }
         p {
             text-align: center;
@@ -93,11 +78,6 @@
             font-weight: 600;
             color: #4c4381;
         }
-        .error {
-            color: #dc3545;
-            text-align: center;
-            margin-bottom: 15px;
-        }
         .denied {
             color: #dc3545;
             text-align: center;
@@ -106,7 +86,7 @@
     </style>
 </head>
 <body>
-    <div class="consent-container">
+    <div class="consent-container container">
         <h1>Consent</h1>
         {{if .Error}}
         <div class="error">{{.Error}}</div>
