@@ -20,6 +20,7 @@ type Controllers struct {
 	UserLoginController      UserLoginController
 	IndexController          IndexController
 	ConsentController        ConsentController
+	IntrospectionController  IntrospectionController
 }
 
 //TODO: Do something with it. We need to define better error handling.
