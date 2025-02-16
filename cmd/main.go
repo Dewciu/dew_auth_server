@@ -165,7 +165,10 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		services.ConsentService,
 		server.AllEndpoints.OAuth2Authorize,
 	)
-	introspectionController := controllers.NewIntrospectionController()
+	introspectionController := controllers.NewIntrospectionController(
+		services.AccessTokenService,
+		services.RefreshTokenService,
+	)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
 		ClientRegisterController: clientRegisterController,

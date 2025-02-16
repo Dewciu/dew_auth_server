@@ -5,8 +5,8 @@ import (
 )
 
 type AccessTokenOutput struct {
-	cachemodels.AccessToken
 	Active bool `json:"active"`
+	cachemodels.AccessToken
 }
 
 type AuthorizationCodeGrantOutput struct {

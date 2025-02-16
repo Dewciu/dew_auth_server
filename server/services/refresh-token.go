@@ -22,6 +22,7 @@ type IRefreshTokenService interface {
 		scope string,
 		tokenLength int,
 	) (string, error)
+	GetTokenDetails(ctx context.Context, token string) (*cachemodels.RefreshToken, error)
 }
 
 type RefreshTokenService struct {
@@ -120,4 +121,13 @@ func (s *RefreshTokenService) GetExistingRefreshToken(ctx context.Context, clien
 	}
 
 	return tokens[0], nil
+}
+
+func (s *RefreshTokenService) GetTokenDetails(ctx context.Context, token string) (*cachemodels.RefreshToken, error) {
+	tokenRecord, err := s.refreshTokenRepository.GetByToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	return tokenRecord, nil
 }

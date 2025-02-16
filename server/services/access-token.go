@@ -16,14 +16,15 @@ var _ IAccessTokenService = new(AccessTokenService)
 
 type IAccessTokenService interface {
 	GenerateOpaqueToken(length int) (string, error)
-	CreateAccessToken(
+	CreateToken(
 		ctx context.Context,
 		client *models.Client,
 		userID string,
 		scope string,
 		tokenLength int,
 	) (*cachemodels.AccessToken, error)
-	GetExistingAccessToken(ctx context.Context, clientID string, userID string) (*cachemodels.AccessToken, error)
+	GetTokenForUserClient(ctx context.Context, clientID string, userID string) (*cachemodels.AccessToken, error)
+	GetTokenDetails(ctx context.Context, token string) (*cachemodels.AccessToken, error)
 }
 
 type AccessTokenService struct {
@@ -51,7 +52,7 @@ func (s *AccessTokenService) GenerateOpaqueToken(length int) (string, error) {
 	return token, nil
 }
 
-func (s *AccessTokenService) CreateAccessToken(
+func (s *AccessTokenService) CreateToken(
 	ctx context.Context,
 	client *models.Client,
 	userID string,
@@ -67,7 +68,7 @@ func (s *AccessTokenService) CreateAccessToken(
 		return nil, e
 	}
 
-	existingAccessToken, err := s.GetExistingAccessToken(ctx, client.ID.String(), userID)
+	existingAccessToken, err := s.GetTokenForUserClient(ctx, client.ID.String(), userID)
 	if err != nil {
 		e := errors.New("failed to get existing access token")
 		logrus.WithError(err).Error(e)
@@ -107,7 +108,7 @@ func (s *AccessTokenService) CreateAccessToken(
 	return tokenRecord, nil
 }
 
-func (s *AccessTokenService) GetExistingAccessToken(ctx context.Context, clientID string, userID string) (*cachemodels.AccessToken, error) {
+func (s *AccessTokenService) GetTokenForUserClient(ctx context.Context, clientID string, userID string) (*cachemodels.AccessToken, error) {
 	tokens, err := s.accessTokenRepository.GetByUserAndClient(ctx, userID, clientID)
 	if err != nil {
 		e := errors.New("failed to get access tokens by user and client index")
@@ -127,4 +128,15 @@ func (s *AccessTokenService) GetExistingAccessToken(ctx context.Context, clientI
 	}
 
 	return tokens[0], nil
+}
+
+func (s *AccessTokenService) GetTokenDetails(ctx context.Context, token string) (*cachemodels.AccessToken, error) {
+	tokenRecord, err := s.accessTokenRepository.GetByToken(ctx, token)
+	if err != nil {
+		e := errors.New("failed to get access token by token")
+		logrus.WithError(err).Error(e)
+		return nil, e
+	}
+
+	return tokenRecord, nil
 }
