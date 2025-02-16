@@ -131,7 +131,7 @@ func main() {
 	services := getServices(repositories, cacheRepositories)
 	controllers := getControllers(templatePath, services)
 
-	oauthServer.Configure(controllers)
+	oauthServer.Configure(controllers, services)
 	oauthServer.Run(ctx, serveAddress)
 }
 
@@ -165,6 +165,10 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		services.ConsentService,
 		server.AllEndpoints.OAuth2Authorize,
 	)
+	introspectionController := controllers.NewIntrospectionController(
+		services.AccessTokenService,
+		services.RefreshTokenService,
+	)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
 		ClientRegisterController: clientRegisterController,
@@ -173,6 +177,7 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		UserLoginController:      userLoginController,
 		IndexController:          indexController,
 		ConsentController:        consentController,
+		IntrospectionController:  introspectionController,
 	}
 }
 

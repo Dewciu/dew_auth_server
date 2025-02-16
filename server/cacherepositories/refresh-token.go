@@ -3,6 +3,7 @@ package cacherepositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -115,13 +116,13 @@ func (r *RefreshTokenRepository) GetByUserAndClient(ctx context.Context, userID 
 	tokens := make([]*cachemodels.RefreshToken, 0)
 
 	if err != nil {
-		e := errors.New("failed to get access tokens by user and client index")
+		e := fmt.Errorf("failed to get access tokens by user (%s) and client (%s) index", userID, clientID)
 		logrus.WithError(err).Error(e)
 		return nil, e
 	}
 
 	if len(tokensFromIndex) == 0 {
-		logrus.Info("no access tokens found for user and client")
+		logrus.Debugf("no access tokens found for user: %s and client %s", userID, clientID)
 		return tokens, nil
 	}
 

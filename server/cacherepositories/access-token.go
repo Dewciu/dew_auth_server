@@ -144,7 +144,7 @@ func (r *AccessTokenRepository) GetByUserAndClient(ctx context.Context, userID s
 	}
 
 	if len(tokensFromIndex) == 0 {
-		logrus.Info("no access tokens found for user and client")
+		logrus.Debugf("no access tokens found for user: %s and client: %s", userID, clientID)
 		return tokens, nil
 	}
 

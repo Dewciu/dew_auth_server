@@ -13,7 +13,7 @@ type RefreshToken struct {
 	UserID    string `json:"user_id"`       // UserID is the identifier of the user to whom the token was issued.
 	ExpiresIn int    `json:"exp"`           // ExpiresIn is the duration in seconds for which the token is valid.
 	IssuedAt  int    `json:"iat"`           // IssuedAt is the timestamp when the token was issued.
-	Revoked   bool   `json:"revoked"`       // Revoked indicates whether the token has been revoked.
+	Revoked   bool   `json:"-"`             // Revoked indicates whether the token has been revoked.
 }
 
 func NewRefreshToken(

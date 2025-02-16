@@ -10,6 +10,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/controllers"
 	"github.com/dewciu/dew_auth_server/server/middleware"
 	"github.com/dewciu/dew_auth_server/server/models"
+	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -46,14 +47,17 @@ type OAuthServer struct {
 	sessionStore sessions.Store
 }
 
-func (s *OAuthServer) Configure(controllers *controllers.Controllers) {
+func (s *OAuthServer) Configure(
+	controllers *controllers.Controllers,
+	services *services.Services,
+) {
 	err := s.migrate()
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to migrate database: %v", err)
 	}
 
 	s.setMiddleware()
-	s.setRoutes(controllers)
+	s.setRoutes(controllers, services)
 }
 
 func (s *OAuthServer) Run(ctx context.Context, serveAddress string) {
@@ -113,7 +117,10 @@ func (s *OAuthServer) setMiddleware() {
 	s.router.Use(sessions.Sessions("session", s.sessionStore))
 }
 
-func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
+func (s *OAuthServer) setRoutes(
+	controllers *controllers.Controllers,
+	services *services.Services,
+) {
 	s.router.GET("../openapi.yaml", func(c *gin.Context) {
 		c.File("./openapi.yaml")
 	})
@@ -129,11 +136,14 @@ func (s *OAuthServer) setRoutes(controllers *controllers.Controllers) {
 	s.router.POST(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
 	s.router.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
 
-	authedGroup := s.router.Group("", middleware.SessionValidate(AllEndpoints.OAuth2Login))
+	sessionGroup := s.router.Group("", middleware.SessionValidate(AllEndpoints.OAuth2Login))
 
-	authedGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
-	authedGroup.GET(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
-	authedGroup.POST(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
-	authedGroup.GET(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
-	authedGroup.POST(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
+	sessionGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
+	sessionGroup.GET(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	sessionGroup.POST(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	sessionGroup.GET(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
+	sessionGroup.POST(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
+
+	clientAuthGroup := s.router.Group("", middleware.AuthorizeClientBasic(services.ClientService))
+	clientAuthGroup.POST(AllEndpoints.OAuth2Introspect, controllers.IntrospectionController.Introspect)
 }

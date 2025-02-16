@@ -77,7 +77,7 @@ func (h *AuthorizationCodeGrantService) ObtainAccessToken(ctx context.Context, i
 		return nil, err
 	}
 
-	accessToken, err = h.accessTokenService.CreateAccessToken(
+	accessToken, err = h.accessTokenService.CreateToken(
 		ctx,
 		client,
 		codeDetails.UserID,
