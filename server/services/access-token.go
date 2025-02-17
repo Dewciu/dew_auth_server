@@ -25,6 +25,7 @@ type IAccessTokenService interface {
 	) (*cachemodels.AccessToken, error)
 	GetTokenForUserClient(ctx context.Context, clientID string, userID string) (*cachemodels.AccessToken, error)
 	GetTokenDetails(ctx context.Context, token string) (*cachemodels.AccessToken, error)
+	RevokeToken(ctx context.Context, token *cachemodels.AccessToken) error
 }
 
 type AccessTokenService struct {
@@ -139,4 +140,15 @@ func (s *AccessTokenService) GetTokenDetails(ctx context.Context, token string) 
 	}
 
 	return tokenRecord, nil
+}
+
+func (s *AccessTokenService) RevokeToken(ctx context.Context, token *cachemodels.AccessToken) error {
+	err := s.accessTokenRepository.Update(ctx, token)
+	if err != nil {
+		e := errors.New("failed to delete access token")
+		logrus.WithError(err).Error(e)
+		return e
+	}
+
+	return nil
 }

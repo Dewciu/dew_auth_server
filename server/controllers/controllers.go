@@ -21,6 +21,7 @@ type Controllers struct {
 	IndexController          IndexController
 	ConsentController        ConsentController
 	IntrospectionController  IntrospectionController
+	RevocationController     RevocationController
 }
 
 //TODO: Do something with it. We need to define better error handling.

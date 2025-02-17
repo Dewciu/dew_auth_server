@@ -58,6 +58,7 @@ func (r *RefreshTokenRepository) Create(ctx context.Context, tokenData *cachemod
 		"scopes":   tokenData.Scopes,
 		"exp":      tokenData.ExpiresIn,
 		"iat":      tokenData.IssuedAt,
+		"revoked":  tokenData.Revoked,
 	}).Err(); err != nil {
 		e := errors.New("failed to create access token")
 		logrus.WithError(err).Error(e)
@@ -137,6 +138,27 @@ func (r *RefreshTokenRepository) GetByUserAndClient(ctx context.Context, userID 
 	}
 
 	return tokens, nil
+}
+
+func (r *RefreshTokenRepository) Update(ctx context.Context, token *cachemodels.RefreshToken) error {
+	key := r.keyPrefix + token.Token
+
+	err := r.rdClient.HMSet(ctx, key, map[string]interface{}{
+		"clientID": token.ClientID,
+		"userID":   token.UserID,
+		"scopes":   token.Scopes,
+		"exp":      token.ExpiresIn,
+		"iat":      token.IssuedAt,
+		"revoked":  token.Revoked,
+	}).Err()
+
+	if err != nil {
+		e := errors.New("failed to update access token")
+		logrus.WithError(err).Error(e)
+		return e
+	}
+
+	return nil
 }
 
 func (r *RefreshTokenRepository) getDataByToken(ctx context.Context, token string) (map[string]string, error) {

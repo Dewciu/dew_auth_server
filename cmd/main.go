@@ -169,6 +169,10 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		services.AccessTokenService,
 		services.RefreshTokenService,
 	)
+	revocationController := controllers.NewRevocationController(
+		services.AccessTokenService,
+		services.RefreshTokenService,
+	)
 	return &controllers.Controllers{
 		AccessTokenController:    accessTokenController,
 		ClientRegisterController: clientRegisterController,
@@ -178,6 +182,7 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		IndexController:          indexController,
 		ConsentController:        consentController,
 		IntrospectionController:  introspectionController,
+		RevocationController:     revocationController,
 	}
 }
 
