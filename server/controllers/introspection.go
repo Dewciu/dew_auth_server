@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/dewciu/dew_auth_server/server/constants"
@@ -28,10 +27,9 @@ func NewIntrospectionController(
 }
 
 func (i *IntrospectionController) Introspect(c *gin.Context) {
-	ctx := c.Request.Context()
 	client := c.MustGet("client").(*models.Client)
 
-	introspectionInput := new(inputs.IntrospectionInput)
+	introspectionInput := new(inputs.IntrospectionRevocationInput)
 	if err := c.ShouldBindJSON(introspectionInput); err != nil {
 		handleParseError(c, err, *introspectionInput)
 		return
@@ -39,9 +37,9 @@ func (i *IntrospectionController) Introspect(c *gin.Context) {
 
 	switch introspectionInput.TokenType {
 	case string(constants.TokenTypeAccess):
-		i.introspectAccessToken(ctx, c, client, introspectionInput)
+		i.introspectAccessToken(c, client, introspectionInput)
 	case string(constants.TokenTypeRefresh):
-		i.introspectRefreshToken(ctx, c, client, introspectionInput)
+		i.introspectRefreshToken(c, client, introspectionInput)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":             "invalid_request",
@@ -51,11 +49,11 @@ func (i *IntrospectionController) Introspect(c *gin.Context) {
 }
 
 func (i *IntrospectionController) introspectAccessToken(
-	ctx context.Context,
 	c *gin.Context,
 	client *models.Client,
-	introspectionInput *inputs.IntrospectionInput,
+	introspectionInput *inputs.IntrospectionRevocationInput,
 ) {
+	ctx := c.Request.Context()
 	accessToken, err := i.accessTokenService.GetTokenDetails(ctx, introspectionInput.Token)
 	if err != nil || accessToken == nil || accessToken.ClientID != client.ID.String() {
 		c.JSON(http.StatusOK, gin.H{
@@ -73,13 +71,16 @@ func (i *IntrospectionController) introspectAccessToken(
 }
 
 func (i *IntrospectionController) introspectRefreshToken(
-	ctx context.Context,
 	c *gin.Context,
 	client *models.Client,
-	introspectionInput *inputs.IntrospectionInput,
+	introspectionInput *inputs.IntrospectionRevocationInput,
 ) {
+	ctx := c.Request.Context()
 	refreshToken, err := i.refreshTokenService.GetTokenDetails(ctx, introspectionInput.Token)
-	if err != nil || refreshToken == nil || refreshToken.ClientID != client.ID.String() || refreshToken.Revoked {
+	if err != nil ||
+		refreshToken == nil ||
+		refreshToken.ClientID != client.ID.String() ||
+		!refreshToken.IsActive() {
 		c.JSON(http.StatusOK, gin.H{
 			"active": false,
 		})

@@ -146,4 +146,5 @@ func (s *OAuthServer) setRoutes(
 
 	clientAuthGroup := s.router.Group("", middleware.AuthorizeClientBasic(services.ClientService))
 	clientAuthGroup.POST(AllEndpoints.OAuth2Introspect, controllers.IntrospectionController.Introspect)
+	clientAuthGroup.POST(AllEndpoints.OAuth2Revoke, controllers.RevocationController.Revoke)
 }

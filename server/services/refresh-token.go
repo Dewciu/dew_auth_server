@@ -23,6 +23,7 @@ type IRefreshTokenService interface {
 		tokenLength int,
 	) (string, error)
 	GetTokenDetails(ctx context.Context, token string) (*cachemodels.RefreshToken, error)
+	RevokeToken(ctx context.Context, token *cachemodels.RefreshToken) error
 }
 
 type RefreshTokenService struct {
@@ -130,4 +131,13 @@ func (s *RefreshTokenService) GetTokenDetails(ctx context.Context, token string)
 	}
 
 	return tokenRecord, nil
+}
+
+func (s *RefreshTokenService) RevokeToken(ctx context.Context, token *cachemodels.RefreshToken) error {
+	token.Revoke()
+	if err := s.refreshTokenRepository.Create(ctx, token); err != nil {
+		return err
+	}
+
+	return nil
 }

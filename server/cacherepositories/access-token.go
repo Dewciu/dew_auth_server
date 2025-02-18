@@ -18,6 +18,7 @@ type IAccessTokenRepository interface {
 	Create(ctx context.Context, tokenData *cachemodels.AccessToken) error
 	GetByToken(ctx context.Context, token string) (*cachemodels.AccessToken, error)
 	GetByUserAndClient(ctx context.Context, userID string, clientID string) ([]*cachemodels.AccessToken, error)
+	Update(ctx context.Context, tokenData *cachemodels.AccessToken) error
 }
 
 type AccessTokenRepository struct {
@@ -159,6 +160,18 @@ func (r *AccessTokenRepository) GetByUserAndClient(ctx context.Context, userID s
 	}
 
 	return tokens, nil
+}
+
+func (r *AccessTokenRepository) Update(ctx context.Context, tokenData *cachemodels.AccessToken) error {
+	key := r.keyPrefix + tokenData.Token
+
+	if err := r.rdClient.Del(ctx, key).Err(); err != nil {
+		e := errors.New("failed to delete access token")
+		logrus.WithError(err).Error(e)
+		return e
+	}
+
+	return nil
 }
 
 func (r *AccessTokenRepository) getDataByToken(ctx context.Context, token string) (map[string]string, error) {
