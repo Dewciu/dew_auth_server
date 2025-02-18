@@ -193,7 +193,7 @@ func getServices(repositories *repositories.Repositories, cacheRepositories *cac
 	authorizationCodeService := services.NewAuthorizationCodeService(cacheRepositories.AuthorizationCodeRepository)
 	refreshTokenService := services.NewRefreshTokenService(cacheRepositories.RefreshTokenRepository)
 	userService := services.NewUserService(repositories.UserRepository)
-	authorizationCodeGrantService := services.NewAuthorizationCodeGrantService(
+	authorizationCodeGrantService := services.NewGrantService(
 		accessTokenService,
 		clientService,
 		authorizationCodeService,

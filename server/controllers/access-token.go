@@ -15,10 +15,10 @@ import (
 )
 
 type AccessTokenController struct {
-	authCodeGrantService services.IAuthorizationCodeGrantService
+	authCodeGrantService services.IGrantService
 }
 
-func NewAccessTokenController(authCodeGrantService services.IAuthorizationCodeGrantService) AccessTokenController {
+func NewAccessTokenController(authCodeGrantService services.IGrantService) AccessTokenController {
 	return AccessTokenController{
 		authCodeGrantService: authCodeGrantService,
 	}
@@ -50,7 +50,7 @@ func (atc AccessTokenController) handleAuthorizationCodeGrant(c *gin.Context) {
 		return
 	}
 
-	output, err := atc.authCodeGrantService.ObtainAccessToken(ctx, authCodeGrantInput)
+	output, err := atc.authCodeGrantService.ObtainByAuthCode(ctx, authCodeGrantInput)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to handle authorization code grant")
 		c.JSON(http.StatusInternalServerError, outputs.ErrorResponse(
@@ -64,13 +64,24 @@ func (atc AccessTokenController) handleAuthorizationCodeGrant(c *gin.Context) {
 }
 
 func (atc AccessTokenController) handleRefreshTokenGrant(c *gin.Context) {
+	ctx := c.Request.Context()
 	var refreshTokenGrantInput inputs.RefreshTokenGrantInput
 	if err := c.ShouldBind(&refreshTokenGrantInput); err != nil {
 		handleGrantParseError(c, err, refreshTokenGrantInput, "refresh token")
 		return
 	}
 
-	// TODO: Add logic to process refresh token grant
+	output, err := atc.authCodeGrantService.ObtainByRefreshToken(ctx, refreshTokenGrantInput, false)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to handle refresh token grant")
+		c.JSON(http.StatusInternalServerError, outputs.ErrorResponse(
+			string(constants.ServerError),
+			"Failed to handle refresh token grant.",
+		))
+		return
+	}
+
+	c.JSON(http.StatusCreated, output)
 }
 
 func handleGrantParseError(c *gin.Context, err error, input interface{}, grantType string) {

@@ -127,6 +127,8 @@ func (s *RefreshTokenService) GetExistingRefreshToken(ctx context.Context, clien
 func (s *RefreshTokenService) GetTokenDetails(ctx context.Context, token string) (*cachemodels.RefreshToken, error) {
 	tokenRecord, err := s.refreshTokenRepository.GetByToken(ctx, token)
 	if err != nil {
+		e := errors.New("failed to get refresh token by token")
+		logrus.WithError(err).Info(e)
 		return nil, err
 	}
 
