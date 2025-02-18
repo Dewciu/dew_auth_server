@@ -9,7 +9,7 @@ type AccessTokenOutput struct {
 	cachemodels.AccessToken
 }
 
-type AuthorizationCodeGrantOutput struct {
+type GrantOutput struct {
 	AccessTokenOutput
 	RefreshToken string `json:"refresh_token"`
 }
