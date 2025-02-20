@@ -40,7 +40,11 @@ func (atc *AccessTokenController) Issue(c *gin.Context) {
 	case constants.RefreshToken:
 		atc.handleRefreshTokenGrant(c)
 	default:
-		handleUnsupportedGrantType(c, grantType)
+		e := oautherrors.NewOAuthUnsupportedGrantTypeError(
+			fmt.Errorf("'%s' is not a valid grant type", grantType),
+		)
+		c.JSON(ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, e))
+		return
 	}
 }
 
@@ -86,13 +90,4 @@ func (atc AccessTokenController) handleRefreshTokenGrant(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, output)
-}
-
-func handleUnsupportedGrantType(c *gin.Context, grantType constants.GrantType) {
-	err := fmt.Errorf("unsupported grant type: %s", grantType)
-	logrus.WithField("grant_type", grantType).Error("Received invalid grant type")
-	c.JSON(http.StatusBadRequest, outputs.ErrorResponse(
-		string(constants.UnsupportedGrantType),
-		err.Error(),
-	))
 }

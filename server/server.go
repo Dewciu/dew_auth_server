@@ -123,6 +123,7 @@ func (s *OAuthServer) setMiddleware() {
 func (s *OAuthServer) setErrorHandlers() {
 	ginerr.RegisterErrorHandler(oautherrors.OAuthInternalServerErrorHandler)
 	ginerr.RegisterErrorHandler(oautherrors.OAuthInputValidationErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthUnsupportedGrantTypeErrorHandler)
 }
 
 func (s *OAuthServer) setRoutes(
