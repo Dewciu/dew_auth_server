@@ -5,9 +5,11 @@ import (
 
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
+	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
+	"github.com/ing-bank/ginerr/v2"
 )
 
 type RevocationController struct {
@@ -26,19 +28,21 @@ func NewRevocationController(
 }
 
 func (r *RevocationController) Revoke(c *gin.Context) {
+	ctx := c.Request.Context()
 	client := c.MustGet("client").(*models.Client)
 
-	revocationInput := new(inputs.IntrospectionRevocationInput)
-	if err := c.ShouldBindJSON(revocationInput); err != nil {
-		handleParseError(c, err, *revocationInput)
+	revocationInput := inputs.IntrospectionRevocationInput{}
+	if err := c.ShouldBindJSON(&revocationInput); err != nil {
+		e := oautherrors.NewOAuthInputValidationError(err, revocationInput)
+		c.JSON(ginerr.NewErrorResponse(ctx, e))
 		return
 	}
 
 	switch revocationInput.TokenType {
 	case string(constants.TokenTypeAccess):
-		r.revokeAccessToken(c, client, revocationInput)
+		r.revokeAccessToken(c, client, &revocationInput)
 	case string(constants.TokenTypeRefresh):
-		r.revokeRefreshToken(c, client, revocationInput)
+		r.revokeRefreshToken(c, client, &revocationInput)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":             "invalid_request",
