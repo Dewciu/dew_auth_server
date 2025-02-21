@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/dewciu/dew_auth_server/server/constants"
@@ -45,10 +46,12 @@ func (i *IntrospectionController) Introspect(c *gin.Context) {
 	case string(constants.TokenTypeRefresh):
 		i.introspectRefreshToken(c, client, &introspectionInput)
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_request",
-			"error_description": "token type is invalid",
-		})
+		e := oautherrors.NewOAuthUnsupportedTokenTypeError(
+			errors.New("introspection endpoint does not support this token type"),
+		)
+		c.JSON(ginerr.NewErrorResponseFrom(
+			ginerr.DefaultErrorRegistry, ctx, e,
+		))
 	}
 }
 

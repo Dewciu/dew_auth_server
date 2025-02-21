@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/dewciu/dew_auth_server/server/constants"
@@ -44,10 +45,12 @@ func (r *RevocationController) Revoke(c *gin.Context) {
 	case string(constants.TokenTypeRefresh):
 		r.revokeRefreshToken(c, client, &revocationInput)
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_request",
-			"error_description": "token type is invalid",
-		})
+		e := oautherrors.NewOAuthUnsupportedTokenTypeError(
+			errors.New("revoke endpoint does not support this token type"),
+		)
+		c.JSON(ginerr.NewErrorResponseFrom(
+			ginerr.DefaultErrorRegistry, ctx, e,
+		))
 	}
 }
 
