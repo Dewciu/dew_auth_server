@@ -35,7 +35,6 @@ func NewAuthorizationController(
 	}
 }
 
-// TODO: Session stores, user login redirection, etc.
 func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	ctx := servicecontexts.NewAuthContext(c.Request.Context())
 
