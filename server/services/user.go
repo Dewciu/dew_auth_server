@@ -7,6 +7,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/repositories"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/dewciu/dew_auth_server/server/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -62,28 +63,27 @@ func (s *UserService) RegisterUser(
 	return nil
 }
 
-//TODO: Create better logging and errors
-
 func (s *UserService) LoginUser(
 	ctx context.Context,
 	userLoginInput inputs.UserLoginInput,
 ) (*models.User, error) {
 	user, err := s.userRepository.GetWithEmail(ctx, userLoginInput.Email)
 	if err != nil {
-		errMsg := "an error occurred"
+		if errors.As(err, &repositories.RecordNotFoundError[models.User]{}) {
+			e := serviceerrors.NewUserDoesNotExistError(userLoginInput.Email)
+			logrus.Debug(e)
+			return nil, e
+		}
+
+		errMsg := "could not get user with e-mail " + userLoginInput.Email
 		logrus.WithError(err).Error(errMsg)
 		return nil, errors.New(errMsg)
 	}
 
-	if user == nil {
-		errMsg := "user does not exist"
-		logrus.Error(errMsg)
-		return nil, errors.New(errMsg)
-	}
-
 	if !utils.VerifyPassword(userLoginInput.Password, user.PasswordHash) {
-		logrus.WithError(err).Error("invalid password")
-		return nil, errors.New("invalid password")
+		e := serviceerrors.NewInvalidUserPasswordError(userLoginInput.Email)
+		logrus.WithError(err).Debug(e)
+		return nil, e
 	}
 
 	return user, nil

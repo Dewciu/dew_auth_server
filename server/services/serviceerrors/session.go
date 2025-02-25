@@ -1,4 +1,4 @@
-package service_errors
+package serviceerrors
 
 type NoUserInSessionError struct {
 	sessionID string
