@@ -30,7 +30,7 @@ func (r *ClientRepository) GetWithID(ctx context.Context, id string) (*models.Cl
 	var client models.Client
 	result := r.database.Where("id = ?", id).First(&client)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, NewRecordNotFoundError(models.Client{})
 	}
 	return &client, result.Error
 }
@@ -39,7 +39,7 @@ func (r *ClientRepository) GetWithName(ctx context.Context, name string) (*model
 	var client models.Client
 	result := r.database.Where("name = ?", name).First(&client)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, NewRecordNotFoundError(models.Client{})
 	}
 	return &client, result.Error
 }

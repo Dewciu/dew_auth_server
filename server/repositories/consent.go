@@ -35,7 +35,7 @@ func (r *ConsentRepository) GetForClientAndUser(ctx context.Context, clientID uu
 	).First(&consent)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, NewRecordNotFoundError(models.Consent{})
 	}
 
 	return &consent, result.Error

@@ -30,7 +30,7 @@ func (r *UserRepository) GetWithEmail(ctx context.Context, email string) (*model
 	var user models.User
 	result := r.database.Where("email = ?", email).First(&user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, NewRecordNotFoundError(models.User{})
 	}
 	return &user, result.Error
 }
@@ -39,7 +39,7 @@ func (r *UserRepository) GetWithEmailOrUsername(ctx context.Context, email strin
 	var user models.User
 	result := r.database.Where("email = ?", email).Or("username = ?", username).First(&user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, NewRecordNotFoundError(models.User{})
 	}
 	return &user, result.Error
 }
