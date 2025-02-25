@@ -35,17 +35,23 @@ func (s *UserService) RegisterUser(
 ) error {
 	user, err := s.userRepository.GetWithEmailOrUsername(ctx, userInput.Email, userInput.Username)
 	if err != nil {
-		return errors.New("an error occurred")
+		errMsg := "could not get user from database"
+		logrus.WithError(err).Error(errMsg)
+		return errors.New(errMsg)
 	}
 
 	if user != nil {
-		return errors.New("user already exists")
+		e := serviceerrors.NewUserAlreadyExistsError(userInput.Email, userInput.Username)
+		logrus.Debug(e)
+		return e
 	}
 
 	hashedPw, err := utils.HashPassword(userInput.Password)
 
 	if err != nil {
-		return errors.New("could not hash password")
+		errMsg := "an error occurred while hashing the password"
+		logrus.WithError(err).Error(errMsg)
+		return errors.New(errMsg)
 	}
 
 	userToCreate := models.User{
@@ -57,7 +63,9 @@ func (s *UserService) RegisterUser(
 	err = s.userRepository.Create(ctx, &userToCreate)
 
 	if err != nil {
-		return errors.New("could not create user")
+		errMsg := "an error occurred while creating the user"
+		logrus.WithError(err).Error(errMsg)
+		return errors.New(errMsg)
 	}
 
 	return nil
