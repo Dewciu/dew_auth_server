@@ -5,7 +5,9 @@ type NoUserInSessionError struct {
 }
 
 func NewNoUserInSessionError(sessionID string) *NoUserInSessionError {
-	return &NoUserInSessionError{}
+	return &NoUserInSessionError{
+		sessionID: sessionID,
+	}
 }
 
 func (e *NoUserInSessionError) Error() string {

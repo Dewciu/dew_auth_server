@@ -14,7 +14,6 @@ var _ IConsentRepository = new(ConsentRepository)
 type IConsentRepository interface {
 	GetForClientAndUser(ctx context.Context, clientID uuid.UUID, userID uuid.UUID) (*models.Consent, error)
 	Create(ctx context.Context, consent *models.Consent) error
-	Update(ctx context.Context, consent *models.Consent) error
 }
 
 type ConsentRepository struct {
@@ -44,10 +43,5 @@ func (r *ConsentRepository) GetForClientAndUser(ctx context.Context, clientID uu
 
 func (r *ConsentRepository) Create(ctx context.Context, consent *models.Consent) error {
 	result := r.database.Create(consent)
-	return result.Error
-}
-
-func (r *ConsentRepository) Update(ctx context.Context, consent *models.Consent) error {
-	result := r.database.WithContext(ctx).Save(consent)
 	return result.Error
 }
