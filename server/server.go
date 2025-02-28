@@ -66,7 +66,6 @@ func (s *OAuthServer) Configure(
 func (s *OAuthServer) Run(ctx context.Context, serveAddress string) {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 	defer stop()
-	//TODO: Make it HTTPS
 	srv := &http.Server{
 		Addr:    serveAddress,
 		Handler: s.router,
