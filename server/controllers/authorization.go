@@ -5,10 +5,12 @@ import (
 	"net/http"
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
+	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/dewciu/dew_auth_server/server/services/servicecontexts"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/ing-bank/ginerr/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,18 +35,17 @@ func NewAuthorizationController(
 	}
 }
 
-// TODO: Session stores, user login redirection, etc.
 func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	ctx := servicecontexts.NewAuthContext(c.Request.Context())
 
-	//TODO: Investigate why pointer is throwing an error
-	authInput := new(inputs.AuthorizationInput)
-	if err := c.ShouldBindQuery(authInput); err != nil {
-		//TODO: Handle error properly with redirect
-		handleParseError(c, err, *authInput)
+	authInput := inputs.AuthorizationInput{}
+	if err := c.ShouldBindQuery(&authInput); err != nil {
+		e := oautherrors.NewOAuthInputValidationError(err, authInput)
+		c.JSON(ginerr.NewErrorResponse(ctx, e))
 		return
 	}
 
+	//TODO: Retrieve session from gin context
 	session := sessions.Default(c)
 	userID := session.Get("user_id").(string)
 

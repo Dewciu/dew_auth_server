@@ -1,14 +1,17 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
+	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
+	"github.com/ing-bank/ginerr/v2"
 )
 
 type IntrospectionController struct {
@@ -27,24 +30,28 @@ func NewIntrospectionController(
 }
 
 func (i *IntrospectionController) Introspect(c *gin.Context) {
+	ctx := c.Request.Context()
 	client := c.MustGet("client").(*models.Client)
 
-	introspectionInput := new(inputs.IntrospectionRevocationInput)
-	if err := c.ShouldBindJSON(introspectionInput); err != nil {
-		handleParseError(c, err, *introspectionInput)
+	introspectionInput := inputs.IntrospectionRevocationInput{}
+	if err := c.ShouldBindJSON(&introspectionInput); err != nil {
+		e := oautherrors.NewOAuthInputValidationError(err, introspectionInput)
+		c.JSON(ginerr.NewErrorResponse(ctx, e))
 		return
 	}
 
 	switch introspectionInput.TokenType {
 	case string(constants.TokenTypeAccess):
-		i.introspectAccessToken(c, client, introspectionInput)
+		i.introspectAccessToken(c, client, &introspectionInput)
 	case string(constants.TokenTypeRefresh):
-		i.introspectRefreshToken(c, client, introspectionInput)
+		i.introspectRefreshToken(c, client, &introspectionInput)
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":             "invalid_request",
-			"error_description": "token type is invalid",
-		})
+		e := oautherrors.NewOAuthUnsupportedTokenTypeError(
+			errors.New("introspection endpoint does not support this token type"),
+		)
+		c.JSON(ginerr.NewErrorResponseFrom(
+			ginerr.DefaultErrorRegistry, ctx, e,
+		))
 	}
 }
 

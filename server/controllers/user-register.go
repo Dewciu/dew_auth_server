@@ -7,6 +7,7 @@ import (
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/services"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -72,7 +73,12 @@ func (rc *UserRegisterController) handlePost(c *gin.Context) {
 	)
 
 	if err != nil {
-		rc.tmpl.Execute(c.Writer, map[string]string{"Error": err.Error()})
+		if _, ok := err.(serviceerrors.UserAlreadyExistsError); ok {
+			rc.tmpl.Execute(c.Writer, map[string]string{"Error": "User already exists"})
+			return
+		}
+
+		rc.tmpl.Execute(c.Writer, map[string]string{"Error": "An error occurred while registering the user"})
 		return
 	}
 

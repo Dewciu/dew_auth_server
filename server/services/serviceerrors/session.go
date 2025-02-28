@@ -1,11 +1,13 @@
-package service_errors
+package serviceerrors
 
 type NoUserInSessionError struct {
 	sessionID string
 }
 
 func NewNoUserInSessionError(sessionID string) *NoUserInSessionError {
-	return &NoUserInSessionError{}
+	return &NoUserInSessionError{
+		sessionID: sessionID,
+	}
 }
 
 func (e *NoUserInSessionError) Error() string {

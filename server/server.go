@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/dewciu/dew_auth_server/server/controllers"
+	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/middleware"
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/ing-bank/ginerr/v2"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -57,13 +59,13 @@ func (s *OAuthServer) Configure(
 	}
 
 	s.setMiddleware()
+	s.setErrorHandlers()
 	s.setRoutes(controllers, services)
 }
 
 func (s *OAuthServer) Run(ctx context.Context, serveAddress string) {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 	defer stop()
-	//TODO: Make it HTTPS
 	srv := &http.Server{
 		Addr:    serveAddress,
 		Handler: s.router,
@@ -115,6 +117,13 @@ func (s *OAuthServer) setMiddleware() {
 	s.router.Static("/oauth2/styles", "server/controllers/templates/styles")
 	s.router.Use(gin.LoggerWithWriter(logrus.StandardLogger().Out))
 	s.router.Use(sessions.Sessions("session", s.sessionStore))
+}
+
+func (s *OAuthServer) setErrorHandlers() {
+	ginerr.RegisterErrorHandler(oautherrors.OAuthInternalServerErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthInputValidationErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthUnsupportedGrantTypeErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthUnsupportedTokenTypeErrorHandler)
 }
 
 func (s *OAuthServer) setRoutes(

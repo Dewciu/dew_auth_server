@@ -11,10 +11,9 @@ import (
 )
 
 type UserLoginController struct {
-	tmpl                   *template.Template
-	defaultSessionDuration int
-	userService            services.IUserService
-	consentService         services.IConsentService
+	tmpl           *template.Template
+	userService    services.IUserService
+	consentService services.IConsentService
 }
 
 func NewUserLoginController(
@@ -22,12 +21,10 @@ func NewUserLoginController(
 	userService services.IUserService,
 	consentService services.IConsentService,
 ) UserLoginController {
-	//TODO: Session duration can be done as a configuration
 	return UserLoginController{
-		tmpl:                   template.Must(template.ParseFiles(templatePath + "/login-user.html")),
-		defaultSessionDuration: 360,
-		userService:            userService,
-		consentService:         consentService,
+		tmpl:           template.Must(template.ParseFiles(templatePath + "/login-user.html")),
+		userService:    userService,
+		consentService: consentService,
 	}
 }
 
