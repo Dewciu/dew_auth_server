@@ -12,8 +12,8 @@ type IAccessTokenInput interface {
 // All clients are confidential
 type AccessTokenInput struct {
 	GrantType    string `form:"grant_type" name:"grant_type" binding:"required"`
-	ClientID     string `form:"client_id" name:"client_id" binding:"required"`
-	ClientSecret string `form:"client_secret" name:"client_secret" binding:"required"`
+	ClientID     string `form:"client_id" name:"client_id"`
+	ClientSecret string `form:"client_secret" name:"client_secret"`
 }
 
 func (i AccessTokenInput) GetGrantType() string {

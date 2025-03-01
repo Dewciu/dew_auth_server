@@ -48,8 +48,7 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	}
 
 	session := sessions.Default(c)
-	userID := session.Get("user_id").(string)
-	ctx = appcontext.WithUserID(ctx, userID)
+	userID := appcontext.MustGetUserID(ctx)
 
 	client, err := ac.clientService.CheckIfClientExistsByID(
 		c.Request.Context(),
@@ -59,23 +58,16 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	if err != nil {
 		ac.redirectWithError(c, authInput.GetRedirectURI(),
 			oautherrors.ErrServerError,
-			"An error occurred while validating the client")
-		return
-	}
-
-	if client == nil {
-		ac.redirectWithError(c, authInput.GetRedirectURI(),
-			oautherrors.ErrInvalidClient,
-			"Client does not exist")
+			"client does not exist")
 		return
 	}
 
 	session.Set("client_id", authInput.GetClientID())
 	if err := session.Save(); err != nil {
-		logrus.WithError(err).Error("Failed to save session")
+		logrus.WithError(err).Error("failed to save session")
 		ac.redirectWithError(c, authInput.GetRedirectURI(),
 			oautherrors.ErrServerError,
-			"Failed to process authorization request")
+			"failed to process authorization request")
 		return
 	}
 
@@ -86,10 +78,10 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	)
 
 	if err != nil {
-		logrus.WithError(err).Error("Error checking consent status")
+		logrus.WithError(err).Error("error checking consent status")
 		ac.redirectWithError(c, authInput.GetRedirectURI(),
 			oautherrors.ErrServerError,
-			"Failed to verify consent status")
+			"failed to verify consent status")
 		return
 	}
 
@@ -97,10 +89,10 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 		session.Set("auth_redirect_uri", c.Request.RequestURI)
 		session.Set("client_redirect_uri", authInput.GetRedirectURI())
 		if err := session.Save(); err != nil {
-			logrus.WithError(err).Error("Failed to save session before consent redirect")
+			logrus.WithError(err).Error("failed to save session before consent redirect")
 			ac.redirectWithError(c, authInput.GetRedirectURI(),
 				oautherrors.ErrServerError,
-				"Failed to process consent request")
+				"failed to process consent request")
 			return
 		}
 
@@ -108,7 +100,7 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 			"endpoint":  ac.consentEndpoint,
 			"client_id": client.ID.String(),
 			"user_id":   userID,
-		}).Debug("Redirecting to consent page")
+		}).Debug("redirecting to consent page")
 
 		c.Redirect(http.StatusFound, ac.consentEndpoint)
 		return
@@ -166,7 +158,7 @@ func (ac *AuthorizationController) redirectWithError(c *gin.Context, redirectURI
 		"redirect_uri":      redirectURI,
 		"error_type":        errorType,
 		"error_description": errorDescription,
-	}).Debug("Redirecting with error")
+	}).Debug("redirecting with error")
 
 	c.Redirect(
 		http.StatusFound,

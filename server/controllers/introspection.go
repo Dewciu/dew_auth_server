@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
@@ -33,7 +34,7 @@ func NewIntrospectionController(
 
 func (i *IntrospectionController) Introspect(c *gin.Context) {
 	ctx := c.Request.Context()
-	client := c.MustGet("client").(*models.Client)
+	client := appcontext.MustGetClient(ctx)
 
 	introspectionInput := inputs.IntrospectionRevocationInput{}
 	if err := c.ShouldBindJSON(&introspectionInput); err != nil {

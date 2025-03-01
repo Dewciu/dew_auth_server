@@ -113,14 +113,7 @@ func (h *GrantService) ObtainByAuthCode(ctx context.Context, input inputs.Author
 func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.RefreshTokenGrantInput, newRefreshToken bool) (*outputs.GrantOutput, error) {
 	var output *outputs.GrantOutput
 	var accessToken *cachemodels.AccessToken
-
-	client, err := h.clientService.VerifyClient(ctx, input.ClientID, input.ClientSecret)
-
-	if err != nil {
-		e := errors.New("client verification failed")
-		logrus.WithError(err).Debug(e)
-		return nil, e
-	}
+	client := appcontext.MustGetClient(ctx)
 
 	if !strings.Contains(client.GrantTypes, input.GrantType) {
 		e := serviceerrors.NewUnsupportedGrantTypeError(client.ID.String(), constants.GrantType(input.GrantType))

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
@@ -31,7 +32,7 @@ func NewRevocationController(
 
 func (r *RevocationController) Revoke(c *gin.Context) {
 	ctx := c.Request.Context()
-	client := c.MustGet("client").(*models.Client)
+	client := appcontext.MustGetClient(ctx)
 
 	revocationInput := inputs.IntrospectionRevocationInput{}
 	if err := c.ShouldBindJSON(&revocationInput); err != nil {
