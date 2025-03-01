@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
@@ -125,9 +124,15 @@ func (atc AccessTokenController) handleRefreshTokenGrant(c *gin.Context) {
 
 func (atc AccessTokenController) handleClientCredentialsGrant(c *gin.Context) {
 	ctx := c.Request.Context()
-	client := appcontext.MustGetClient(ctx)
 
-	output, err := atc.grantService.ObtainByClientCredentials(ctx, client)
+	clientCredentialsGrantInput := inputs.ClientCredentialsGrantInput{}
+	if err := c.ShouldBind(&clientCredentialsGrantInput); err != nil {
+		e := oautherrors.NewOAuthInputValidationError(err, clientCredentialsGrantInput)
+		c.JSON(ginerr.NewErrorResponse(ctx, e))
+		return
+	}
+
+	output, err := atc.grantService.ObtainByClientCredentials(ctx, clientCredentialsGrantInput)
 	if err != nil {
 		var e any
 		var code int

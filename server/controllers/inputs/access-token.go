@@ -42,5 +42,5 @@ type AuthorizationCodeGrantInput struct {
 
 type ClientCredentialsGrantInput struct {
 	AccessTokenInput
-	Scopes string `form:"scopes" name:"scopes" binding:"required"`
+	Scopes string `form:"scopes" name:"scopes"`
 }

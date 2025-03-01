@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/dewciu/dew_auth_server/server/appcontext"
@@ -10,7 +11,6 @@ import (
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
-	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +21,7 @@ var _ IGrantService = new(GrantService)
 type IGrantService interface {
 	ObtainByAuthCode(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.GrantOutput, error)
 	ObtainByRefreshToken(ctx context.Context, input inputs.RefreshTokenGrantInput, newRefreshToken bool) (*outputs.GrantOutput, error)
-	ObtainByClientCredentials(ctx context.Context, client *models.Client) (*outputs.GrantOutput, error)
+	ObtainByClientCredentials(ctx context.Context, input inputs.ClientCredentialsGrantInput) (*outputs.GrantOutput, error)
 }
 
 type GrantService struct {
@@ -190,9 +190,23 @@ func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.Re
 	return output, nil
 }
 
-func (h *GrantService) ObtainByClientCredentials(ctx context.Context, client *models.Client) (*outputs.GrantOutput, error) {
+func (h *GrantService) ObtainByClientCredentials(ctx context.Context, input inputs.ClientCredentialsGrantInput) (*outputs.GrantOutput, error) {
 	var output *outputs.GrantOutput
 	var accessToken *cachemodels.AccessToken
+	client := appcontext.MustGetClient(ctx)
+
+	if input.Scopes != "" {
+		clientScopes := strings.Split(client.Scopes, " ")
+		requestScopes := strings.Split(input.Scopes, " ")
+
+		for _, scope := range requestScopes {
+			if !slices.Contains(clientScopes, scope) {
+				e := serviceerrors.NewInvalidScopeError(client.ID.String(), scope)
+				logrus.Error(e)
+				return nil, e
+			}
+		}
+	}
 
 	if !strings.Contains(client.GrantTypes, string(constants.ClientCredentials)) {
 		e := serviceerrors.NewUnsupportedGrantTypeError(
