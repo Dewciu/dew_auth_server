@@ -101,7 +101,7 @@ func (atc AccessTokenController) handleRefreshTokenGrant(c *gin.Context) {
 		case serviceerrors.ClientNotFoundError:
 			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidClientError(err))
 		case serviceerrors.TokenNotFoundError:
-			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidGrantError(err))
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidTokenError(err))
 		case serviceerrors.InvalidClientSecretError, serviceerrors.ClientAuthorizationError:
 			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidClientError(err))
 		case serviceerrors.UnsupportedGrantTypeError:

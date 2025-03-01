@@ -10,7 +10,6 @@ const (
 	ErrUnsupportedResponseType OAuthErrorType = "unsupported_response_type"
 	ErrInvalidScope            OAuthErrorType = "invalid_scope"
 	ErrServerError             OAuthErrorType = "server_error"
-	ErrTemporarilyUnavailable  OAuthErrorType = "temporarily_unavailable"
 	ErrInvalidClient           OAuthErrorType = "invalid_client"
 	ErrInvalidGrant            OAuthErrorType = "invalid_grant"
 	ErrUnsupportedGrantType    OAuthErrorType = "unsupported_grant_type"
