@@ -9,6 +9,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/cachemodels"
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
 	"github.com/dewciu/dew_auth_server/server/models"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,13 +41,13 @@ func NewAccessTokenService(accessTokenRepository cacherepositories.IAccessTokenR
 
 func (s *AccessTokenService) GenerateOpaqueToken(length int) (string, error) {
 	if length < 1 {
-		return "", errors.New("invalid token length")
+		return "", serviceerrors.NewTokenGenerationError("invalid token length")
 	}
 
 	b := make([]byte, length)
 	_, err := rand.Read(b)
 	if err != nil {
-		return "", err
+		return "", serviceerrors.NewTokenGenerationError(err.Error())
 	}
 
 	token := base64.RawURLEncoding.EncodeToString(b)

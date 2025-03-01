@@ -7,8 +7,8 @@ import (
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
-	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
 	"github.com/dewciu/dew_auth_server/server/services"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/gin-gonic/gin"
 	"github.com/ing-bank/ginerr/v2"
 	"github.com/sirupsen/logrus"
@@ -59,11 +59,25 @@ func (atc AccessTokenController) handleAuthorizationCodeGrant(c *gin.Context) {
 
 	output, err := atc.authCodeGrantService.ObtainByAuthCode(ctx, authCodeGrantInput)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to handle authorization code grant")
-		c.JSON(http.StatusInternalServerError, outputs.ErrorResponse(
-			string(constants.ServerError),
-			"Failed to handle authorization code grant.",
-		))
+		var e any
+		var code int
+		switch err.(type) {
+		case serviceerrors.ClientNotFoundError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidClientError(err))
+		case serviceerrors.InvalidClientSecretError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidClientError(err))
+		case serviceerrors.InvalidAuthorizationCodeError, serviceerrors.InvalidPKCEVerifierError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidGrantError(err))
+		case serviceerrors.UnsupportedGrantTypeError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthUnsupportedGrantTypeError(err))
+		case serviceerrors.UnsupportedResponseTypeError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthUnsupportedResponseTypeError(err))
+		default:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInternalServerError(err))
+		}
+
+		logrus.WithError(err).Error("failed to handle authorization code grant")
+		c.JSON(code, e)
 		return
 	}
 
@@ -81,11 +95,25 @@ func (atc AccessTokenController) handleRefreshTokenGrant(c *gin.Context) {
 
 	output, err := atc.authCodeGrantService.ObtainByRefreshToken(ctx, refreshTokenGrantInput, false)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to handle refresh token grant")
-		c.JSON(http.StatusInternalServerError, outputs.ErrorResponse(
-			string(constants.ServerError),
-			"Failed to handle refresh token grant.",
-		))
+		var e any
+		var code int
+		switch err.(type) {
+		case serviceerrors.ClientNotFoundError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidClientError(err))
+		case serviceerrors.TokenNotFoundError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidGrantError(err))
+		case serviceerrors.InvalidClientSecretError, serviceerrors.ClientAuthorizationError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInvalidClientError(err))
+		case serviceerrors.UnsupportedGrantTypeError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthUnsupportedGrantTypeError(err))
+		case serviceerrors.UnsupportedResponseTypeError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthUnsupportedResponseTypeError(err))
+		default:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInternalServerError(err))
+		}
+
+		logrus.WithError(err).Error("failed to handle refresh token grant")
+		c.JSON(code, e)
 		return
 	}
 

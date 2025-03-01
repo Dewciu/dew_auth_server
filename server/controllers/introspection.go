@@ -1,8 +1,9 @@
 package controllers
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
@@ -12,6 +13,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-gonic/gin"
 	"github.com/ing-bank/ginerr/v2"
+	"github.com/sirupsen/logrus"
 )
 
 type IntrospectionController struct {
@@ -47,7 +49,7 @@ func (i *IntrospectionController) Introspect(c *gin.Context) {
 		i.introspectRefreshToken(c, client, &introspectionInput)
 	default:
 		e := oautherrors.NewOAuthUnsupportedTokenTypeError(
-			errors.New("introspection endpoint does not support this token type"),
+			fmt.Errorf("token type '%s' is not supported for introspection", introspectionInput.TokenType),
 		)
 		c.JSON(ginerr.NewErrorResponseFrom(
 			ginerr.DefaultErrorRegistry, ctx, e,
@@ -62,7 +64,27 @@ func (i *IntrospectionController) introspectAccessToken(
 ) {
 	ctx := c.Request.Context()
 	accessToken, err := i.accessTokenService.GetTokenDetails(ctx, introspectionInput.Token)
+
 	if err != nil || accessToken == nil || accessToken.ClientID != client.ID.String() {
+		logrus.WithFields(logrus.Fields{
+			"token_type": introspectionInput.TokenType,
+			"client_id":  client.ID.String(),
+			"has_error":  err != nil,
+		}).Debug("Token introspection failed: inactive token")
+
+		c.JSON(http.StatusOK, gin.H{
+			"active": false,
+		})
+		return
+	}
+
+	if time.Now().Unix() > int64(accessToken.ExpiresIn) {
+		logrus.WithFields(logrus.Fields{
+			"token_type": introspectionInput.TokenType,
+			"client_id":  client.ID.String(),
+			"expires_in": accessToken.ExpiresIn,
+		}).Debug("Token introspection: token expired")
+
 		c.JSON(http.StatusOK, gin.H{
 			"active": false,
 		})
@@ -84,10 +106,18 @@ func (i *IntrospectionController) introspectRefreshToken(
 ) {
 	ctx := c.Request.Context()
 	refreshToken, err := i.refreshTokenService.GetTokenDetails(ctx, introspectionInput.Token)
+
 	if err != nil ||
 		refreshToken == nil ||
 		refreshToken.ClientID != client.ID.String() ||
 		!refreshToken.IsActive() {
+
+		logrus.WithFields(logrus.Fields{
+			"token_type": introspectionInput.TokenType,
+			"client_id":  client.ID.String(),
+			"has_error":  err != nil,
+		}).Debug("Token introspection failed: inactive token")
+
 		c.JSON(http.StatusOK, gin.H{
 			"active": false,
 		})

@@ -11,6 +11,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/models"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -91,22 +92,23 @@ func (s *AuthorizationCodeService) ValidateCode(
 	clientID string,
 ) (*cachemodels.AuthorizationCode, error) {
 	if code == "" {
-		return nil, errors.New("code is required")
+		return nil, serviceerrors.NewInvalidAuthorizationCodeError("empty")
 	}
 
 	codeDetails, err := s.authorizationCodeRepository.GetByCode(ctx, code)
 	if err != nil {
-		return nil, err
+		logrus.WithError(err).WithField("code", code).Error("Failed to retrieve authorization code")
+		return nil, serviceerrors.NewInvalidAuthorizationCodeError(code)
 	}
 
 	if codeDetails.RedirectURI != redirectUri {
-		e := errors.New("provided redirect URI does not match the URI associated with authorization code")
+		e := serviceerrors.NewInvalidRedirectURIError(redirectUri, codeDetails.RedirectURI)
 		logrus.WithField("redirect_uri", redirectUri).WithField("code_redirect_uri", codeDetails.RedirectURI).Error(e)
 		return nil, e
 	}
 
 	if codeDetails.ClientID != clientID {
-		e := errors.New("provided client ID does not match the ID associated with authorization code")
+		e := serviceerrors.NewTokenClientMismatchError(clientID, codeDetails.ClientID)
 		logrus.WithField("client_id", clientID).WithField("code_client_id", codeDetails.ClientID).Error(e)
 		return nil, e
 	}
@@ -131,15 +133,14 @@ func (s *AuthorizationCodeService) ValidatePKCE(
 
 		encoded := base64.RawURLEncoding.EncodeToString(hashed)
 		if encoded != codeChallenge {
-			return errors.New("PKCE verification failed: code verifier does not match code challenge")
+			return serviceerrors.NewInvalidPKCEVerifierError("code verifier does not match code challenge")
 		}
-
 	case string(constants.PlainMethod):
 		if codeVerifier != codeChallenge {
-			return errors.New("PKCE verification failed: code verifier does not match code challenge")
+			return serviceerrors.NewInvalidPKCEVerifierError("code verifier does not match code challenge")
 		}
 	default:
-		return errors.New("pkce verification failed: unsupported code challenge method")
+		return serviceerrors.NewUnsupportedPKCEMethodError(codeChallengeMethod)
 	}
 
 	return nil

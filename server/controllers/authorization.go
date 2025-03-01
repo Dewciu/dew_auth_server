@@ -3,11 +3,13 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/dewciu/dew_auth_server/server/services/servicecontexts"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/ing-bank/ginerr/v2"
@@ -45,7 +47,6 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 		return
 	}
 
-	//TODO: Retrieve session from gin context
 	session := sessions.Default(c)
 	userID := session.Get("user_id").(string)
 
@@ -55,21 +56,27 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	)
 
 	if err != nil {
-		ac.redirectWithInternalServerErr(c, authInput.GetRedirectURI())
+		ac.redirectWithError(c, authInput.GetRedirectURI(),
+			oautherrors.ErrServerError,
+			"An error occurred while validating the client")
+		return
 	}
 
 	if client == nil {
-		params := "?error=client does not exists&error_description=Invalid client id"
-		uri := authInput.GetRedirectURI()
-		c.Redirect(
-			http.StatusFound,
-			uri+params,
-		)
+		ac.redirectWithError(c, authInput.GetRedirectURI(),
+			oautherrors.ErrInvalidClient,
+			"Client does not exist")
 		return
 	}
 
 	session.Set("client_id", authInput.GetClientID())
-	session.Save()
+	if err := session.Save(); err != nil {
+		logrus.WithError(err).Error("Failed to save session")
+		ac.redirectWithError(c, authInput.GetRedirectURI(),
+			oautherrors.ErrServerError,
+			"Failed to process authorization request")
+		return
+	}
 
 	consentExists, err := ac.consentService.ConsentForClientAndUserExists(
 		ctx,
@@ -78,18 +85,31 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	)
 
 	if err != nil {
-		ac.redirectWithInternalServerErr(c, authInput.GetRedirectURI())
+		logrus.WithError(err).Error("Error checking consent status")
+		ac.redirectWithError(c, authInput.GetRedirectURI(),
+			oautherrors.ErrServerError,
+			"Failed to verify consent status")
+		return
 	}
 
 	if !consentExists {
 		session.Set("auth_redirect_uri", c.Request.RequestURI)
 		session.Set("client_redirect_uri", authInput.GetRedirectURI())
-		session.Save()
-		logrus.Debugf("Redirecting to %s", ac.consentEndpoint)
-		c.Redirect(
-			http.StatusFound,
-			ac.consentEndpoint,
-		)
+		if err := session.Save(); err != nil {
+			logrus.WithError(err).Error("Failed to save session before consent redirect")
+			ac.redirectWithError(c, authInput.GetRedirectURI(),
+				oautherrors.ErrServerError,
+				"Failed to process consent request")
+			return
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"endpoint":  ac.consentEndpoint,
+			"client_id": client.ID.String(),
+			"user_id":   userID,
+		}).Debug("Redirecting to consent page")
+
+		c.Redirect(http.StatusFound, ac.consentEndpoint)
 		return
 	}
 
@@ -97,15 +117,36 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	ctx.Client = client
 	output, err := ac.authorizationService.AuthorizeClient(ctx, authInput)
 
-	//TODO: Handle error properly, depends on which error is returned
 	if err != nil {
-		//TODO: It can't be that way, we need to do proper errors and errors description
-		params := fmt.Sprintf("?error=%s&error_description=%s", err, err)
-		uri := authInput.GetRedirectURI()
-		c.Redirect(
-			http.StatusFound,
-			uri+params,
-		)
+		var errorType oautherrors.OAuthErrorType
+		var errorDescription string
+
+		switch e := err.(type) {
+		case serviceerrors.InvalidRedirectURIError, serviceerrors.InvalidRedirectURIForClientError, serviceerrors.UnsupportedPKCEMethodError:
+			errorType = oautherrors.ErrInvalidRequest
+			errorDescription = e.Error()
+		case serviceerrors.UnsupportedResponseTypeError:
+			errorType = oautherrors.ErrUnsupportedResponseType
+			errorDescription = e.Error()
+		case serviceerrors.InvalidScopeError:
+			errorType = oautherrors.ErrInvalidScope
+			errorDescription = e.Error()
+		case serviceerrors.ClientNotFoundError:
+			errorType = oautherrors.ErrInvalidClient
+			errorDescription = e.Error()
+		case serviceerrors.CodeGenerationError:
+			errorType = oautherrors.ErrServerError
+			errorDescription = "Failed to generate authorization code"
+		case serviceerrors.InvalidClientSecretError:
+			errorType = oautherrors.ErrInvalidClient
+			errorDescription = "Invalid client credentials"
+		default:
+			errorType = oautherrors.ErrServerError
+			errorDescription = "An error occurred while processing the request"
+			logrus.WithError(err).Error("Unhandled error during authorization")
+		}
+
+		ac.redirectWithError(c, authInput.GetRedirectURI(), errorType, errorDescription)
 		return
 	}
 
@@ -116,9 +157,18 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 	)
 }
 
-func (ac *AuthorizationController) redirectWithInternalServerErr(c *gin.Context, redirectURI string) {
-	redirectURI = fmt.Sprintf("%s?error=internal_error&error_description=Internal server error", redirectURI)
-	logrus.Debugf("Redirecting to %s", redirectURI)
+func (ac *AuthorizationController) redirectWithError(c *gin.Context, redirectURI string, errorType oautherrors.OAuthErrorType, errorDescription string) {
+	redirectURI = fmt.Sprintf("%s?error=%s&error_description=%s",
+		redirectURI,
+		url.QueryEscape(string(errorType)),
+		url.QueryEscape(errorDescription))
+
+	logrus.WithFields(logrus.Fields{
+		"redirect_uri":      redirectURI,
+		"error_type":        errorType,
+		"error_description": errorDescription,
+	}).Debug("Redirecting with error")
+
 	c.Redirect(
 		http.StatusFound,
 		redirectURI,

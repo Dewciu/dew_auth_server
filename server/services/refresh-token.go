@@ -8,6 +8,7 @@ import (
 
 	"github.com/dewciu/dew_auth_server/server/cachemodels"
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -127,9 +128,9 @@ func (s *RefreshTokenService) GetExistingRefreshToken(ctx context.Context, clien
 func (s *RefreshTokenService) GetTokenDetails(ctx context.Context, token string) (*cachemodels.RefreshToken, error) {
 	tokenRecord, err := s.refreshTokenRepository.GetByToken(ctx, token)
 	if err != nil {
-		e := errors.New("failed to get refresh token by token")
+		e := serviceerrors.NewTokenNotFoundError(token)
 		logrus.WithError(err).Info(e)
-		return nil, err
+		return nil, e
 	}
 
 	return tokenRecord, nil

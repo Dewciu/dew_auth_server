@@ -17,7 +17,11 @@ func SessionValidate(loginEndpoint string) gin.HandlerFunc {
 		userID := session.Get("user_id")
 
 		if userID == nil {
-			logrus.Debugf("Session not found, redirecting to login page %s", loginEndpoint)
+			logrus.WithFields(logrus.Fields{
+				"request_uri": c.Request.RequestURI,
+				"endpoint":    loginEndpoint,
+			}).Debug("User session not found or expired")
+
 			c.Redirect(
 				http.StatusFound,
 				loginEndpoint+"?redirect_uri="+escapedRedirectURI,

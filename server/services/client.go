@@ -5,18 +5,19 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
 	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/repositories"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
+	"github.com/sirupsen/logrus"
 )
 
 var _ IClientService = new(ClientService)
 
 type IClientService interface {
-	VerifyClientSecret(ctx context.Context, clientID string, clientSecret string) (*models.Client, error)
+	VerifyClient(ctx context.Context, clientID string, clientSecret string) (*models.Client, error)
 	CheckIfClientExistsByName(ctx context.Context, clientName string) (*models.Client, error)
 	CheckIfClientExistsByID(ctx context.Context, clientID string) (*models.Client, error)
 	RegisterClient(
@@ -35,28 +36,32 @@ func NewClientService(clientRepository repositories.IClientRepository) IClientSe
 	}
 }
 
-func (s *ClientService) VerifyClientSecret(
+func (s *ClientService) VerifyClient(
 	ctx context.Context,
 	clientID string,
 	clientSecret string,
 ) (*models.Client, error) {
 	client, err := s.clientRepository.GetWithID(ctx, clientID)
 	if err != nil {
+		if _, ok := err.(repositories.RecordNotFoundError[models.Client]); ok {
+			return nil, serviceerrors.NewClientNotFoundError(clientID)
+		}
 		return nil, err
 	}
 	if client == nil {
-		return nil, errors.New("client not found")
+		return nil, serviceerrors.NewClientNotFoundError(clientID)
 	}
 
 	//TODO: client secret should be hashed in database
 	decodedClientSecret, err := base64.StdEncoding.DecodeString(client.Secret)
 
 	if err != nil {
+		logrus.WithError(err).Error("failed to decode client secret")
 		return nil, err
 	}
 
 	if string(decodedClientSecret) != clientSecret {
-		return nil, errors.New("invalid client secret")
+		return nil, serviceerrors.NewInvalidClientSecretError(clientID)
 	}
 
 	return client, nil
@@ -68,10 +73,13 @@ func (s *ClientService) CheckIfClientExistsByName(
 ) (*models.Client, error) {
 	client, err := s.clientRepository.GetWithName(ctx, clientName)
 	if err != nil {
+		if _, ok := err.(repositories.RecordNotFoundError[models.Client]); ok {
+			return nil, serviceerrors.NewClientNotFoundError(clientName)
+		}
 		return nil, err
 	}
 	if client == nil {
-		return nil, errors.New("client not found")
+		return nil, serviceerrors.NewClientNotFoundError(clientName)
 	}
 
 	return client, nil
@@ -83,10 +91,13 @@ func (s *ClientService) CheckIfClientExistsByID(
 ) (*models.Client, error) {
 	client, err := s.clientRepository.GetWithID(ctx, clientID)
 	if err != nil {
+		if _, ok := err.(repositories.RecordNotFoundError[models.Client]); ok {
+			return nil, serviceerrors.NewClientNotFoundError(clientID)
+		}
 		return nil, err
 	}
 	if client == nil {
-		return nil, nil
+		return nil, serviceerrors.NewClientNotFoundError(clientID)
 	}
 
 	return client, nil
@@ -108,6 +119,7 @@ func (s *ClientService) RegisterClient(
 
 	clientSecret, err := s.GenerateClientSecret(64)
 	if err != nil {
+		logrus.WithError(err).Error("failed to generate client secret")
 		return nil, err
 	}
 
@@ -124,8 +136,8 @@ func (s *ClientService) RegisterClient(
 	}
 
 	err = s.clientRepository.Create(ctx, client)
-
 	if err != nil {
+		logrus.WithError(err).Error("failed to create client")
 		return nil, err
 	}
 

@@ -124,6 +124,14 @@ func (s *OAuthServer) setErrorHandlers() {
 	ginerr.RegisterErrorHandler(oautherrors.OAuthInputValidationErrorHandler)
 	ginerr.RegisterErrorHandler(oautherrors.OAuthUnsupportedGrantTypeErrorHandler)
 	ginerr.RegisterErrorHandler(oautherrors.OAuthUnsupportedTokenTypeErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthInvalidClientErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthInvalidGrantErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthAccessDeniedErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthInvalidScopeErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthTemporarilyUnavailableErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthInvalidTokenErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthUnauthorizedClientErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthUnsupportedResponseTypeErrorHandler)
 }
 
 func (s *OAuthServer) setRoutes(

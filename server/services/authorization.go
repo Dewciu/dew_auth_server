@@ -8,6 +8,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
 	sc "github.com/dewciu/dew_auth_server/server/services/servicecontexts"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,20 +42,28 @@ func (h *AuthorizationService) AuthorizeClient(ctx sc.AuthorizationContext, inpu
 	client, err := h.clientService.CheckIfClientExistsByID(ctx, input.GetClientID())
 
 	if err != nil {
-		e := errors.New("client verification failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
+		logrus.Error(err)
+		return nil, err
 	}
 
 	if !strings.Contains(client.ResponseTypes, string(constants.TokenResponseType)) {
-		e := errors.New("response type not allowed")
-		logrus.Error(e)
+		e := serviceerrors.NewUnsupportedResponseTypeError(client.ID.String(), constants.TokenResponseType)
+		logrus.WithFields(
+			logrus.Fields{
+				"client_id":     client.ID.String(),
+				"response_type": constants.TokenResponseType,
+			},
+		).Error(e)
+
 		return nil, e
 	}
 
 	if !strings.Contains(client.RedirectURI, input.GetRedirectURI()) {
-		e := errors.New("redirect uri not allowed")
-		logrus.Error(e)
+		e := serviceerrors.NewInvalidRedirectURIForClientError(client.ID.String(), input.GetRedirectURI())
+		logrus.WithFields(logrus.Fields{
+			"client_id": client.ID.String(),
+			"uri":       input.GetRedirectURI(),
+		}).Error(e)
 		return nil, e
 	}
 
@@ -68,8 +77,9 @@ func (h *AuthorizationService) AuthorizeClient(ctx sc.AuthorizationContext, inpu
 	)
 
 	if err != nil {
-		logrus.WithError(err).Error("failed to generate authorization code")
-		return nil, err
+		e := errors.New("failed to generate authorization code")
+		logrus.WithError(err).Error(e)
+		return nil, e
 	}
 
 	return outputs.AuthorizeOutput{

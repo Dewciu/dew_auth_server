@@ -9,6 +9,7 @@ import (
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,35 +45,32 @@ func (h *GrantService) ObtainByAuthCode(ctx context.Context, input inputs.Author
 	var output *outputs.GrantOutput
 	var accessToken *cachemodels.AccessToken
 
-	client, err := h.clientService.VerifyClientSecret(ctx, input.ClientID, input.ClientSecret)
-
+	client, err := h.clientService.VerifyClient(ctx, input.ClientID, input.ClientSecret)
 	if err != nil {
-		e := errors.New("client verification failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
+		logrus.WithError(err).Debug("Client verification failed")
+		return nil, err
 	}
 
 	if !strings.Contains(client.GrantTypes, input.GrantType) {
-		e := errors.New("grant type not allowed")
-		logrus.Error(e)
+		e := serviceerrors.NewUnsupportedGrantTypeError(client.ID.String(), input.GrantType)
+		logrus.Debug(e)
 		return nil, e
 	}
 
 	if !strings.Contains(client.ResponseTypes, string(constants.TokenResponseType)) {
-		e := errors.New("response type not allowed")
-		logrus.Error(e)
+		e := serviceerrors.NewUnsupportedResponseTypeError(client.ID.String(), constants.TokenResponseType)
+		logrus.Debug(e)
 		return nil, e
 	}
 
 	codeDetails, err := h.authCodeService.ValidateCode(ctx, input.Code, input.RedirectURI, client.ID.String())
-
 	if err != nil {
-		e := errors.New("auth code verification failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
+		logrus.WithError(err).Debug("Auth code verification failed")
+		return nil, err
 	}
 
 	if err := h.authCodeService.ValidatePKCE(input.CodeVerifier, codeDetails.CodeChallenge, codeDetails.CodeChallengeMethod); err != nil {
+		logrus.WithError(err).Debug("PKCE validation failed")
 		return nil, err
 	}
 
@@ -83,11 +81,9 @@ func (h *GrantService) ObtainByAuthCode(ctx context.Context, input inputs.Author
 		codeDetails.Scopes,
 		64,
 	)
-
 	if err != nil {
-		e := errors.New("access token creation failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
+		logrus.WithError(err).Debug("Access token creation failed")
+		return nil, err
 	}
 
 	accessTokenOutput := outputs.AccessTokenOutput{
@@ -102,11 +98,9 @@ func (h *GrantService) ObtainByAuthCode(ctx context.Context, input inputs.Author
 		codeDetails.Scopes,
 		32,
 	)
-
 	if err != nil {
-		e := errors.New("refresh token creation failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
+		logrus.WithError(err).Error("Refresh token creation failed")
+		return nil, err
 	}
 
 	output = &outputs.GrantOutput{
@@ -121,37 +115,36 @@ func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.Re
 	var output *outputs.GrantOutput
 	var accessToken *cachemodels.AccessToken
 
-	client, err := h.clientService.VerifyClientSecret(ctx, input.ClientID, input.ClientSecret)
+	client, err := h.clientService.VerifyClient(ctx, input.ClientID, input.ClientSecret)
 
 	if err != nil {
 		e := errors.New("client verification failed")
-		logrus.WithError(err).Error(e)
+		logrus.WithError(err).Debug(e)
 		return nil, e
 	}
 
 	if !strings.Contains(client.GrantTypes, input.GrantType) {
-		e := errors.New("grant type not allowed")
-		logrus.Error(e)
+		e := serviceerrors.NewUnsupportedGrantTypeError(client.ID.String(), input.GrantType)
+		logrus.Debug(e)
 		return nil, e
 	}
 
 	if !strings.Contains(client.ResponseTypes, string(constants.TokenResponseType)) {
 		e := errors.New("response type not allowed")
-		logrus.Error(e)
+		logrus.Debug(e)
 		return nil, e
 	}
 
 	refreshTokenDetails, err := h.refreshTokenService.GetTokenDetails(ctx, input.RefreshToken)
 
 	if err != nil {
-		e := errors.New("refresh token verification failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
+		logrus.Debug(err)
+		return nil, err
 	}
 
 	if refreshTokenDetails.ClientID != client.ID.String() {
-		e := errors.New("client id mismatch")
-		logrus.Error(e)
+		e := serviceerrors.NewClientAuthorizationError(client.ID.String(), "refresh token client mismatch")
+		logrus.Debug(e)
 		return nil, e
 	}
 
@@ -165,7 +158,7 @@ func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.Re
 
 	if err != nil {
 		e := errors.New("access token creation failed")
-		logrus.WithError(err).Error(e)
+		logrus.WithError(err).Debug(e)
 		return nil, e
 	}
 
@@ -186,13 +179,13 @@ func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.Re
 
 		if err != nil {
 			e := errors.New("refresh token creation failed")
-			logrus.WithError(err).Error(e)
+			logrus.WithError(err).Debug(e)
 			return nil, e
 		}
 
 		if err := h.refreshTokenService.RevokeToken(ctx, refreshTokenDetails); err != nil {
 			e := errors.New("failed to revoke refresh token")
-			logrus.WithError(err).Error(e)
+			logrus.WithError(err).Debug(e)
 			return nil, e
 		}
 	}

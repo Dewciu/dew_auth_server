@@ -1,11 +1,13 @@
 package controllers
 
 import (
-	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strings"
 
+	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/services"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -34,34 +36,46 @@ func NewConsentController(
 }
 
 func (cc *ConsentController) ConsentHandler(c *gin.Context) {
-
 	session := sessions.Default(c)
 	clientID := session.Get("client_id").(string)
 	authRedirectURI := session.Get("auth_redirect_uri").(string)
 	clientRedirectURI := session.Get("client_redirect_uri").(string)
 
 	if clientID == "" || authRedirectURI == "" || clientRedirectURI == "" {
-		c.AbortWithError(
-			http.StatusBadRequest,
-			errors.New("client ID, auth redirect URI, and client redirect URI are required"),
-		)
+		logrus.WithFields(logrus.Fields{
+			"client_id":           clientID,
+			"auth_redirect_uri":   authRedirectURI,
+			"client_redirect_uri": clientRedirectURI,
+		}).Error("Missing required session parameters for consent")
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":             oautherrors.ErrInvalidRequest,
+			"error_description": "Required session parameters are missing",
+		})
+		c.Abort()
 		return
 	}
 
 	client, err := cc.clientService.CheckIfClientExistsByID(c.Request.Context(), clientID)
-
 	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
+		logrus.WithError(err).Error("Error retrieving client for consent")
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrServerError, "Internal server error")
 		return
 	}
 
 	if client == nil {
-		c.AbortWithError(http.StatusNotFound, errors.New("client not found"))
+		logrus.WithField("client_id", clientID).Error("Client not found for consent")
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrInvalidClient, "Client not found")
 		return
 	}
 
 	if !strings.Contains(authRedirectURI, cc.authorizeEndpoint) {
-		c.AbortWithError(http.StatusBadRequest, errors.New("invalid redirect URI"))
+		logrus.WithFields(logrus.Fields{
+			"redirect_uri":       authRedirectURI,
+			"authorize_endpoint": cc.authorizeEndpoint,
+		}).Error("Invalid redirect URI for consent")
+
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrInvalidRequest, "Invalid redirect URI")
 		return
 	}
 
@@ -74,7 +88,7 @@ func (cc *ConsentController) ConsentHandler(c *gin.Context) {
 	case http.MethodPost:
 		cc.handlePost(c, authRedirectURI, clientRedirectURI, clientID)
 	default:
-		c.AbortWithError(http.StatusMethodNotAllowed, errors.New("method not allowed"))
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrInvalidRequest, "Method not allowed")
 	}
 }
 
@@ -85,37 +99,38 @@ func (cc *ConsentController) handlePost(
 	clientID string,
 ) {
 	err := c.Request.ParseForm()
-
 	if err != nil {
-		cc.tmpl.Execute(c.Writer, map[string]string{"Error": "Invalid form submission"})
+		logrus.WithError(err).Error("Failed to parse consent form")
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrInvalidRequest, "Invalid form submission")
 		return
 	}
 
-	//TODO: Do advanced validation
-
 	scopes := c.Request.Form.Get("scopes")
-
 	if scopes == "" {
-		c.AbortWithError(http.StatusBadRequest, errors.New("scopes are required"))
+		logrus.Error("Scopes missing in consent form")
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrInvalidScope, "Scopes are required")
 		return
 	}
 
 	consent := c.Request.Form.Get("consent")
-
 	if consent == "" {
-		c.AbortWithError(http.StatusBadRequest, errors.New("consent is required"))
+		logrus.Error("Consent decision missing in form")
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrInvalidRequest, "Consent decision is required")
 		return
 	}
 
-	logrus.Debugf("Consent: %s", consent)
+	logrus.WithField("consent", consent).Debug("Consent decision received")
 
 	session := sessions.Default(c)
 	userID := session.Get("user_id").(string)
 
 	if consent != "allow" {
-		redirectURI := clientRedirectURI + "?error=consent_denied&error_description=Consent denied"
-		logrus.Debugf("Redirecting to %s", redirectURI)
-		c.Redirect(http.StatusFound, redirectURI)
+		logrus.WithFields(logrus.Fields{
+			"user_id":   userID,
+			"client_id": clientID,
+		}).Info("User denied consent")
+
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrAccessDenied, "Consent denied by user")
 		return
 	}
 
@@ -127,9 +142,35 @@ func (cc *ConsentController) handlePost(
 	)
 
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("failed to grant consent"))
+		logrus.WithError(err).Error("Failed to grant consent")
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrServerError, "Failed to record consent")
 		return
 	}
 
+	// Success - redirect back to authorization flow
+	logrus.WithFields(logrus.Fields{
+		"user_id":      userID,
+		"client_id":    clientID,
+		"redirect_uri": authRedirectURI,
+	}).Info("Consent granted, continuing authorization flow")
+
 	c.Redirect(http.StatusFound, authRedirectURI)
+}
+
+func (cc *ConsentController) redirectWithError(c *gin.Context, redirectURI string, errorType oautherrors.OAuthErrorType, errorDescription string) {
+	redirectURI = fmt.Sprintf("%s?error=%s&error_description=%s",
+		redirectURI,
+		url.QueryEscape(string(errorType)),
+		url.QueryEscape(errorDescription))
+
+	logrus.WithFields(logrus.Fields{
+		"redirect_uri":      redirectURI,
+		"error_type":        errorType,
+		"error_description": errorDescription,
+	}).Debug("Redirecting from consent with error")
+
+	c.Redirect(
+		http.StatusFound,
+		redirectURI,
+	)
 }

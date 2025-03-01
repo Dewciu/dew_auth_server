@@ -1,11 +1,14 @@
 package middleware
 
 import (
-	"net/http"
+	"errors"
 
+	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/services"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/dewciu/dew_auth_server/server/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/ing-bank/ginerr/v2"
 )
 
 func AuthorizeClientBasic(
@@ -15,23 +18,33 @@ func AuthorizeClientBasic(
 		ctx := c.Request.Context()
 		authHeader := c.Request.Header.Get("authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization header is required"})
+			e := oautherrors.NewOAuthUnauthorizedClientError(
+				errors.New("authorization header is required"),
+			)
+			c.JSON(ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, e))
 			c.Abort()
 			return
 		}
 
 		clientID, secret, err := utils.GetCredentialsFromBasicAuthHeader(authHeader)
-
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			e := oautherrors.NewOAuthUnauthorizedClientError(err)
+			c.JSON(ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, e))
 			c.Abort()
 			return
 		}
 
-		client, err := clientService.VerifyClientSecret(ctx, clientID, secret)
-
+		client, err := clientService.VerifyClient(ctx, clientID, secret)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid client credentials"})
+			msg := errors.New("an error occurred while verifying client")
+			if _, ok := err.(serviceerrors.ClientNotFoundError); ok {
+				msg = errors.New("client not found")
+			}
+			if _, ok := err.(serviceerrors.InvalidClientSecretError); ok {
+				msg = errors.New("invalid client secret")
+			}
+			e := oautherrors.NewOAuthUnauthorizedClientError(msg)
+			c.JSON(ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, e))
 			c.Abort()
 			return
 		}

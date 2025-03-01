@@ -6,8 +6,10 @@ import (
 
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/services"
+	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type UserLoginController struct {
@@ -63,7 +65,11 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 
 	err := c.Request.ParseForm()
 	if err != nil {
-		lc.tmpl.Execute(c.Writer, map[string]string{"Error": "Invalid form submission"})
+		logrus.WithError(err).Error("Failed to parse login form")
+		lc.tmpl.Execute(c.Writer, map[string]string{
+			"Error":       "Invalid form submission",
+			"RedirectURI": authRedirectURI,
+		})
 		return
 	}
 
@@ -81,6 +87,7 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 	}
 	if password == "" {
 		errRet["Error"] = "Password is required"
+		lc.tmpl.Execute(c.Writer, errRet)
 		return
 	}
 
@@ -95,7 +102,15 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 	)
 
 	if err != nil {
-		errRet["Error"] = err.Error()
+		logrus.WithError(err).WithField("email", email).Info("Login attempt failed")
+
+		switch err.(type) {
+		case serviceerrors.UserDoesNotExistError, serviceerrors.InvalidUserPasswordError:
+			errRet["Error"] = "Invalid email or password"
+		default:
+			errRet["Error"] = "An error occurred during login"
+		}
+
 		lc.tmpl.Execute(c.Writer, errRet)
 		return
 	}
@@ -104,9 +119,18 @@ func (lc *UserLoginController) handlePost(c *gin.Context) {
 	session.Set("user_id", user.ID.String())
 
 	if err := session.Save(); err != nil {
-		errRet["Error"] = err.Error()
+		logrus.WithError(err).Error("Failed to save user session")
+		errRet["Error"] = "Failed to create user session"
 		lc.tmpl.Execute(c.Writer, errRet)
 		return
+	}
+
+	clientIDParam := c.Query("client_id")
+	if clientIDParam != "" {
+		session.Set("client_id", clientIDParam)
+		if err := session.Save(); err != nil {
+			logrus.WithError(err).Error("Failed to save client_id to session")
+		}
 	}
 
 	lc.tmpl.Execute(c.Writer, map[string]string{
