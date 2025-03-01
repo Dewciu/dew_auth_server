@@ -39,3 +39,8 @@ type AuthorizationCodeGrantInput struct {
 	Code         string `form:"code" name:"code" binding:"required"`
 	CodeVerifier string `form:"code_verifier" name:"code_verifier" binding:"required,min=43,max=128"`
 }
+
+type ClientCredentialsGrantInput struct {
+	AccessTokenInput
+	Scopes string `form:"scopes" name:"scopes" binding:"required"`
+}

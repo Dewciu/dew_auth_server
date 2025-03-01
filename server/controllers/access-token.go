@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
@@ -15,12 +16,12 @@ import (
 )
 
 type AccessTokenController struct {
-	authCodeGrantService services.IGrantService
+	grantService services.IGrantService
 }
 
-func NewAccessTokenController(authCodeGrantService services.IGrantService) AccessTokenController {
+func NewAccessTokenController(grantService services.IGrantService) AccessTokenController {
 	return AccessTokenController{
-		authCodeGrantService: authCodeGrantService,
+		grantService: grantService,
 	}
 }
 
@@ -39,6 +40,8 @@ func (atc *AccessTokenController) Issue(c *gin.Context) {
 		atc.handleAuthorizationCodeGrant(c)
 	case constants.RefreshToken:
 		atc.handleRefreshTokenGrant(c)
+	case constants.ClientCredentials:
+		atc.handleClientCredentialsGrant(c)
 	default:
 		e := oautherrors.NewOAuthUnsupportedGrantTypeError(
 			fmt.Errorf("'%s' is not a valid grant type", grantType),
@@ -57,7 +60,7 @@ func (atc AccessTokenController) handleAuthorizationCodeGrant(c *gin.Context) {
 		return
 	}
 
-	output, err := atc.authCodeGrantService.ObtainByAuthCode(ctx, authCodeGrantInput)
+	output, err := atc.grantService.ObtainByAuthCode(ctx, authCodeGrantInput)
 	if err != nil {
 		var e any
 		var code int
@@ -93,7 +96,7 @@ func (atc AccessTokenController) handleRefreshTokenGrant(c *gin.Context) {
 		return
 	}
 
-	output, err := atc.authCodeGrantService.ObtainByRefreshToken(ctx, refreshTokenGrantInput, false)
+	output, err := atc.grantService.ObtainByRefreshToken(ctx, refreshTokenGrantInput, false)
 	if err != nil {
 		var e any
 		var code int
@@ -115,6 +118,29 @@ func (atc AccessTokenController) handleRefreshTokenGrant(c *gin.Context) {
 		logrus.WithError(err).Error("failed to handle refresh token grant")
 		c.JSON(code, e)
 		return
+	}
+
+	c.JSON(http.StatusCreated, output)
+}
+
+func (atc AccessTokenController) handleClientCredentialsGrant(c *gin.Context) {
+	ctx := c.Request.Context()
+	client := appcontext.MustGetClient(ctx)
+
+	output, err := atc.grantService.ObtainByClientCredentials(ctx, client)
+	if err != nil {
+		var e any
+		var code int
+		switch err.(type) {
+		case serviceerrors.UnsupportedGrantTypeError:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthUnsupportedGrantTypeError(err))
+		default:
+			code, e = ginerr.NewErrorResponseFrom(ginerr.DefaultErrorRegistry, ctx, oautherrors.NewOAuthInternalServerError(err))
+		}
+
+		logrus.WithError(err).Error("failed to handle client credentials grant")
+		c.JSON(code, e)
+
 	}
 
 	c.JSON(http.StatusCreated, output)

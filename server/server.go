@@ -150,7 +150,6 @@ func (s *OAuthServer) setRoutes(
 	s.router.POST(AllEndpoints.Oauth2RegisterUser, controllers.UserRegisterController.RegisterHandler)
 	s.router.GET(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
 	s.router.POST(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
-	s.router.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
 
 	sessionGroup := s.router.Group("", middleware.SessionValidate(AllEndpoints.OAuth2Login))
 
@@ -160,7 +159,8 @@ func (s *OAuthServer) setRoutes(
 	sessionGroup.GET(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 	sessionGroup.POST(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 
-	clientAuthGroup := s.router.Group("", middleware.AuthorizeClientBasic(services.ClientService))
+	clientAuthGroup := s.router.Group("", middleware.AuthorizeClient(services.ClientService))
 	clientAuthGroup.POST(AllEndpoints.OAuth2Introspect, controllers.IntrospectionController.Introspect)
 	clientAuthGroup.POST(AllEndpoints.OAuth2Revoke, controllers.RevocationController.Revoke)
+	clientAuthGroup.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
 }

@@ -5,19 +5,23 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/dewciu/dew_auth_server/server/cachemodels"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
+	"github.com/dewciu/dew_auth_server/server/models"
 	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/sirupsen/logrus"
 )
 
+// TODO: Make token length configurable
 var _ IGrantService = new(GrantService)
 
 type IGrantService interface {
 	ObtainByAuthCode(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.GrantOutput, error)
 	ObtainByRefreshToken(ctx context.Context, input inputs.RefreshTokenGrantInput, newRefreshToken bool) (*outputs.GrantOutput, error)
+	ObtainByClientCredentials(ctx context.Context, client *models.Client) (*outputs.GrantOutput, error)
 }
 
 type GrantService struct {
@@ -44,15 +48,10 @@ func NewGrantService(
 func (h *GrantService) ObtainByAuthCode(ctx context.Context, input inputs.AuthorizationCodeGrantInput) (*outputs.GrantOutput, error) {
 	var output *outputs.GrantOutput
 	var accessToken *cachemodels.AccessToken
-
-	client, err := h.clientService.VerifyClient(ctx, input.ClientID, input.ClientSecret)
-	if err != nil {
-		logrus.WithError(err).Debug("Client verification failed")
-		return nil, err
-	}
+	client := appcontext.MustGetClient(ctx)
 
 	if !strings.Contains(client.GrantTypes, input.GrantType) {
-		e := serviceerrors.NewUnsupportedGrantTypeError(client.ID.String(), input.GrantType)
+		e := serviceerrors.NewUnsupportedGrantTypeError(client.ID.String(), constants.GrantType(input.GrantType))
 		logrus.Debug(e)
 		return nil, e
 	}
@@ -124,7 +123,7 @@ func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.Re
 	}
 
 	if !strings.Contains(client.GrantTypes, input.GrantType) {
-		e := serviceerrors.NewUnsupportedGrantTypeError(client.ID.String(), input.GrantType)
+		e := serviceerrors.NewUnsupportedGrantTypeError(client.ID.String(), constants.GrantType(input.GrantType))
 		logrus.Debug(e)
 		return nil, e
 	}
@@ -193,6 +192,46 @@ func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.Re
 	output = &outputs.GrantOutput{
 		AccessTokenOutput: accessTokenOutput,
 		RefreshToken:      refreshToken,
+	}
+
+	return output, nil
+}
+
+func (h *GrantService) ObtainByClientCredentials(ctx context.Context, client *models.Client) (*outputs.GrantOutput, error) {
+	var output *outputs.GrantOutput
+	var accessToken *cachemodels.AccessToken
+
+	if !strings.Contains(client.GrantTypes, string(constants.ClientCredentials)) {
+		e := serviceerrors.NewUnsupportedGrantTypeError(
+			client.ID.String(),
+			constants.ClientCredentials,
+		)
+		logrus.Error(e)
+		return nil, e
+	}
+
+	accessToken, err := h.accessTokenService.CreateToken(
+		ctx,
+		client,
+		client.ID.String(), // Use client ID as user ID since client is acting on its own behalf
+		client.Scopes,
+		64,
+	)
+
+	if err != nil {
+		e := errors.New("access token creation failed")
+		logrus.WithError(err).Error(e)
+		return nil, e
+	}
+
+	accessTokenOutput := outputs.AccessTokenOutput{
+		Active:      true,
+		AccessToken: *accessToken,
+	}
+
+	output = &outputs.GrantOutput{
+		AccessTokenOutput: accessTokenOutput,
+		// No refresh token for client credentials flow
 	}
 
 	return output, nil

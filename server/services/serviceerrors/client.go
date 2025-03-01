@@ -69,10 +69,10 @@ type UnsupportedGrantTypeError struct {
 	GrantType string
 }
 
-func NewUnsupportedGrantTypeError(clientID, grantType string) UnsupportedGrantTypeError {
+func NewUnsupportedGrantTypeError(clientID string, grantType constants.GrantType) UnsupportedGrantTypeError {
 	return UnsupportedGrantTypeError{
 		ClientID:  clientID,
-		GrantType: grantType,
+		GrantType: string(grantType),
 	}
 }
 

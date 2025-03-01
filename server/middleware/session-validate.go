@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -29,5 +30,12 @@ func SessionValidate(loginEndpoint string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		ctx := c.Request.Context()
+		c.Request = c.Request.WithContext(
+			appcontext.WithUserID(ctx, userID.(string)),
+		)
+
+		c.Next()
 	}
 }

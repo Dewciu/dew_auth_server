@@ -11,5 +11,5 @@ type AccessTokenOutput struct {
 
 type GrantOutput struct {
 	AccessTokenOutput
-	RefreshToken string `json:"refresh_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 }

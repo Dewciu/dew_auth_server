@@ -90,7 +90,6 @@ func (rc *ClientRegisterController) handlePost(c *gin.Context) {
 		Scopes:        strings.Join(scopes, ","),
 	}
 
-	//TODO: Create normal context
 	output, err := rc.clientService.RegisterClient(
 		c.Request.Context(),
 		clientRegisterInput,

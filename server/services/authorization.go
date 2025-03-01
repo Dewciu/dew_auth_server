@@ -1,13 +1,14 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"strings"
 
+	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/outputs"
-	sc "github.com/dewciu/dew_auth_server/server/services/servicecontexts"
 	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/sirupsen/logrus"
 )
@@ -15,7 +16,7 @@ import (
 var _ IAuthorizationService = new(AuthorizationService)
 
 type IAuthorizationService interface {
-	AuthorizeClient(ctx sc.AuthorizationContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error)
+	AuthorizeClient(ctx context.Context, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error)
 }
 
 type AuthorizationService struct {
@@ -36,7 +37,7 @@ func NewAuthorizationService(
 	}
 }
 
-func (h *AuthorizationService) AuthorizeClient(ctx sc.AuthorizationContext, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error) {
+func (h *AuthorizationService) AuthorizeClient(ctx context.Context, input inputs.IAuthorizationInput) (outputs.IAuthorizeOutput, error) {
 
 	client, err := h.clientService.CheckIfClientExistsByID(ctx, input.GetClientID())
 
@@ -66,10 +67,11 @@ func (h *AuthorizationService) AuthorizeClient(ctx sc.AuthorizationContext, inpu
 		return nil, e
 	}
 
+	userID := appcontext.MustGetUserID(ctx)
 	code, err := h.authCodeService.GenerateCodeWithPKCE(
 		ctx,
 		client,
-		ctx.UserID,
+		userID,
 		input.GetRedirectURI(),
 		input.GetCodeChallenge(),
 		input.GetCodeChallengeMethod(),

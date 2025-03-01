@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/dewciu/dew_auth_server/server/controllers/inputs"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/services"
-	"github.com/dewciu/dew_auth_server/server/services/servicecontexts"
 	"github.com/dewciu/dew_auth_server/server/services/serviceerrors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -38,7 +38,7 @@ func NewAuthorizationController(
 }
 
 func (ac *AuthorizationController) Authorize(c *gin.Context) {
-	ctx := servicecontexts.NewAuthContext(c.Request.Context())
+	ctx := c.Request.Context()
 
 	authInput := inputs.AuthorizationInput{}
 	if err := c.ShouldBindQuery(&authInput); err != nil {
@@ -49,6 +49,7 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 
 	session := sessions.Default(c)
 	userID := session.Get("user_id").(string)
+	ctx = appcontext.WithUserID(ctx, userID)
 
 	client, err := ac.clientService.CheckIfClientExistsByID(
 		c.Request.Context(),
@@ -113,8 +114,6 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 		return
 	}
 
-	ctx.UserID = userID
-	ctx.Client = client
 	output, err := ac.authorizationService.AuthorizeClient(ctx, authInput)
 
 	if err != nil {
