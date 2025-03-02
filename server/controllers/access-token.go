@@ -95,7 +95,7 @@ func (atc AccessTokenController) handleRefreshTokenGrant(c *gin.Context) {
 		return
 	}
 
-	output, err := atc.grantService.ObtainByRefreshToken(ctx, refreshTokenGrantInput, false)
+	output, err := atc.grantService.ObtainByRefreshToken(ctx, refreshTokenGrantInput, true)
 	if err != nil {
 		var e any
 		var code int

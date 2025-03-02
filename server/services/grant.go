@@ -140,6 +140,14 @@ func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.Re
 		return nil, e
 	}
 
+	for _, scope := range strings.Split(client.Scopes, " ") {
+		if !slices.Contains(strings.Split(refreshTokenDetails.Scopes, " "), scope) {
+			e := serviceerrors.NewInvalidScopeError(client.ID.String(), scope)
+			logrus.Debug(e)
+			return nil, e
+		}
+	}
+
 	accessToken, err = h.accessTokenService.CreateToken(
 		ctx,
 		client,
