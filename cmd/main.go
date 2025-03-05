@@ -7,9 +7,11 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/dewciu/dew_auth_server/server"
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
+	"github.com/dewciu/dew_auth_server/server/config"
 	"github.com/dewciu/dew_auth_server/server/controllers"
 	"github.com/dewciu/dew_auth_server/server/repositories"
 	"github.com/dewciu/dew_auth_server/server/services"
@@ -34,6 +36,13 @@ const (
 	sessionEncriptionKeyEnvVar    = "SESSION_ENCRIPTION_KEY"
 	certPathEnvVar                = "TLS_CERT_PATH"
 	keyPathEnvVar                 = "TLS_KEY_PATH"
+	rateLimitingEnabledEnvVar     = "RATE_LIMITING_ENABLED"
+	rateLimitTokenLimitEnvVar     = "RATE_LIMIT_TOKEN"
+	rateLimitAuthLimitEnvVar      = "RATE_LIMIT_AUTH"
+	rateLimitLoginLimitEnvVar     = "RATE_LIMIT_LOGIN"
+	rateLimitCommonLimitEnvVar    = "RATE_LIMIT_COMMON"
+	rateLimitWindowSecsEnvVar     = "RATE_LIMIT_WINDOW_SECS"
+	rateLimitExemptedIPsEnvVar    = "RATE_LIMIT_EXEMPTED_IPS"
 )
 
 func main() {
@@ -55,6 +64,13 @@ func main() {
 		sessionEncriptionKey    = os.Getenv(sessionEncriptionKeyEnvVar)
 		certPath                = os.Getenv(certPathEnvVar)
 		keyPath                 = os.Getenv(keyPathEnvVar)
+		rateLimitingEnabled     = os.Getenv(rateLimitingEnabledEnvVar)
+		rateLimitToken          = os.Getenv(rateLimitTokenLimitEnvVar)
+		rateLimitAuth           = os.Getenv(rateLimitAuthLimitEnvVar)
+		rateLimitLogin          = os.Getenv(rateLimitLoginLimitEnvVar)
+		rateLimitCommon         = os.Getenv(rateLimitCommonLimitEnvVar)
+		rateLimitWindowSecs     = os.Getenv(rateLimitWindowSecsEnvVar)
+		rateLimitExemptedIPs    = os.Getenv(rateLimitExemptedIPsEnvVar)
 	)
 
 	router := gin.New()
@@ -109,9 +125,20 @@ func main() {
 			Path:     "/", // cookie path
 			MaxAge:   sessLifetime,
 			HttpOnly: true,
-			Secure:   false, // set to true if using https
+			Secure:   true, // set to true when using HTTPS
 			SameSite: http.SameSiteLaxMode,
 		},
+	)
+
+	// Parse rate limiting configuration
+	rateConfig := parseRateLimitConfig(
+		rateLimitingEnabled,
+		rateLimitToken,
+		rateLimitAuth,
+		rateLimitLogin,
+		rateLimitCommon,
+		rateLimitWindowSecs,
+		rateLimitExemptedIPs,
 	)
 
 	serverConfig := server.ServerConfig{
@@ -122,6 +149,8 @@ func main() {
 			Key:  keyPath,
 		},
 		SessionStore: sessionStore,
+		RedisClient:  redisClient,
+		RateLimiting: rateConfig,
 	}
 
 	oauthServer := server.NewOAuthServer(&serverConfig)
@@ -133,6 +162,58 @@ func main() {
 
 	oauthServer.Configure(controllers, services)
 	oauthServer.Run(ctx, serveAddress)
+}
+
+func parseRateLimitConfig(
+	enabled string,
+	tokenLimit string,
+	authLimit string,
+	loginLimit string,
+	commonLimit string,
+	windowSecs string,
+	exemptedIPs string,
+) config.ServerRateLimitingConfig {
+	config := config.ServerRateLimitingConfig{
+		Enabled:      false,
+		TokenLimit:   60,
+		AuthLimit:    100,
+		LoginLimit:   5,
+		CommonLimit:  75,
+		WindowInSecs: 60,
+		ExemptedIPs:  []string{},
+	}
+
+	// Parse enabled flag
+	if enabled == "true" {
+		config.Enabled = true
+	}
+
+	// Parse limits
+	if val, err := strconv.Atoi(tokenLimit); err == nil && val > 0 {
+		config.TokenLimit = val
+	}
+
+	if val, err := strconv.Atoi(authLimit); err == nil && val > 0 {
+		config.AuthLimit = val
+	}
+
+	if val, err := strconv.Atoi(loginLimit); err == nil && val > 0 {
+		config.LoginLimit = val
+	}
+
+	if val, err := strconv.Atoi(commonLimit); err == nil && val > 0 {
+		config.CommonLimit = val
+	}
+
+	if val, err := strconv.Atoi(windowSecs); err == nil && val > 0 {
+		config.WindowInSecs = val
+	}
+
+	if exemptedIPs != "" {
+		config.ExemptedIPs = strings.Split(exemptedIPs, ",")
+	}
+
+	return config
 }
 
 func getControllers(templatePath string, services *services.Services) *controllers.Controllers {

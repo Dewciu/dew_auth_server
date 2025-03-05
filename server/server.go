@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/dewciu/dew_auth_server/server/config"
 	"github.com/dewciu/dew_auth_server/server/controllers"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/middleware"
@@ -15,6 +16,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/ing-bank/ginerr/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -31,22 +33,30 @@ type ServerConfig struct {
 	Router       *gin.Engine
 	TLSPaths     TLSPaths
 	SessionStore sessions.Store
-}
-
-func NewOAuthServer(config *ServerConfig) OAuthServer {
-	return OAuthServer{
-		database:     config.Database,
-		router:       config.Router,
-		tlsPaths:     config.TLSPaths,
-		sessionStore: config.SessionStore,
-	}
+	RedisClient  *redis.Client
+	RateLimiting config.ServerRateLimitingConfig
 }
 
 type OAuthServer struct {
-	database     *gorm.DB
-	router       *gin.Engine
-	tlsPaths     TLSPaths
-	sessionStore sessions.Store
+	database            *gorm.DB
+	router              *gin.Engine
+	tlsPaths            TLSPaths
+	sessionStore        sessions.Store
+	redisClient         *redis.Client
+	rateLimitingEnabled bool
+	rateLimiters        map[string]*config.RateLimiterConfig
+}
+
+func NewOAuthServer(cfg *ServerConfig) OAuthServer {
+	return OAuthServer{
+		database:            cfg.Database,
+		router:              cfg.Router,
+		tlsPaths:            cfg.TLSPaths,
+		sessionStore:        cfg.SessionStore,
+		redisClient:         cfg.RedisClient,
+		rateLimitingEnabled: cfg.RateLimiting.Enabled,
+		rateLimiters:        config.GetRateLimiters(cfg.RateLimiting, cfg.RedisClient),
+	}
 }
 
 func (s *OAuthServer) Configure(
@@ -117,6 +127,7 @@ func (s *OAuthServer) setMiddleware() {
 	s.router.Static("/oauth2/styles", "server/controllers/templates/styles")
 	s.router.Use(gin.LoggerWithWriter(logrus.StandardLogger().Out))
 	s.router.Use(sessions.Sessions("session", s.sessionStore))
+
 }
 
 func (s *OAuthServer) setErrorHandlers() {
@@ -131,6 +142,7 @@ func (s *OAuthServer) setErrorHandlers() {
 	ginerr.RegisterErrorHandler(oautherrors.OAuthInvalidTokenErrorHandler)
 	ginerr.RegisterErrorHandler(oautherrors.OAuthUnauthorizedClientErrorHandler)
 	ginerr.RegisterErrorHandler(oautherrors.OAuthUnsupportedResponseTypeErrorHandler)
+	ginerr.RegisterErrorHandler(oautherrors.OAuthTooManyRequestsErrorHandler)
 }
 
 func (s *OAuthServer) setRoutes(
@@ -145,22 +157,78 @@ func (s *OAuthServer) setRoutes(
 		URL: "/openapi.yaml", // Point to your OpenAPI specification
 	}, swaggerFiles.Handler))
 
-	s.router.GET("", controllers.IndexController.IndexHandler)
-	s.router.GET(AllEndpoints.Oauth2RegisterUser, controllers.UserRegisterController.RegisterHandler)
-	s.router.POST(AllEndpoints.Oauth2RegisterUser, controllers.UserRegisterController.RegisterHandler)
-	s.router.GET(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
-	s.router.POST(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
+	commonGroup := s.getCommonGroup()
+	commonGroup.GET("", controllers.IndexController.IndexHandler)
 
-	sessionGroup := s.router.Group("", middleware.SessionValidate(AllEndpoints.OAuth2Login))
+	userGroup := s.getUserGroup()
+	userGroup.GET(AllEndpoints.Oauth2RegisterUser, controllers.UserRegisterController.RegisterHandler)
+	userGroup.POST(AllEndpoints.Oauth2RegisterUser, controllers.UserRegisterController.RegisterHandler)
+	userGroup.GET(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
+	userGroup.POST(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
 
-	sessionGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
-	sessionGroup.GET(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
-	sessionGroup.POST(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
-	sessionGroup.GET(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
-	sessionGroup.POST(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
+	authGroup := s.getAuthGroup()
+	authGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
+	authGroup.GET(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	authGroup.POST(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	authGroup.GET(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
+	authGroup.POST(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 
-	clientAuthGroup := s.router.Group("", middleware.AuthorizeClient(services.ClientService))
-	clientAuthGroup.POST(AllEndpoints.OAuth2Introspect, controllers.IntrospectionController.Introspect)
-	clientAuthGroup.POST(AllEndpoints.OAuth2Revoke, controllers.RevocationController.Revoke)
-	clientAuthGroup.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
+	tokenGroup := s.getTokenGroup(services)
+	tokenGroup.POST(AllEndpoints.OAuth2Introspect, controllers.IntrospectionController.Introspect)
+	tokenGroup.POST(AllEndpoints.OAuth2Revoke, controllers.RevocationController.Revoke)
+	tokenGroup.POST(AllEndpoints.OAuth2Token, controllers.AccessTokenController.Issue)
+}
+
+func (s *OAuthServer) getUserGroup() *gin.RouterGroup {
+	handlers := []gin.HandlerFunc{}
+
+	if s.rateLimitingEnabled {
+		handlers = append(handlers, middleware.RateLimiter(s.rateLimiters["user"]))
+	}
+
+	loginGroup := s.router.Group("", handlers...)
+
+	return loginGroup
+}
+
+func (s *OAuthServer) getAuthGroup() *gin.RouterGroup {
+	handlers := []gin.HandlerFunc{}
+
+	if s.rateLimitingEnabled {
+		handlers = append(handlers, middleware.RateLimiter(s.rateLimiters["auth"]))
+	}
+
+	handlers = append(handlers, middleware.SessionValidate(AllEndpoints.OAuth2Login))
+
+	authGroup := s.router.Group("", handlers...)
+
+	return authGroup
+}
+
+func (s *OAuthServer) getTokenGroup(
+	services *services.Services,
+) *gin.RouterGroup {
+	handlers := []gin.HandlerFunc{}
+
+	if s.rateLimitingEnabled {
+		handlers = append(handlers, middleware.RateLimiter(s.rateLimiters["token"]))
+	}
+
+	handlers = append(handlers, middleware.AuthorizeClient(services.ClientService))
+
+	tokenGroup := s.router.Group("", handlers...)
+
+	return tokenGroup
+}
+
+func (s *OAuthServer) getCommonGroup() *gin.RouterGroup {
+	handlers := []gin.HandlerFunc{}
+
+	if s.rateLimitingEnabled {
+		handlers = append(handlers, middleware.RateLimiter(s.rateLimiters["common"]))
+	}
+
+	tokenGroup := s.router.Group("", handlers...)
+
+	return tokenGroup
 }
