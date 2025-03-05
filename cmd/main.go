@@ -40,6 +40,7 @@ const (
 	rateLimitTokenLimitEnvVar     = "RATE_LIMIT_TOKEN"
 	rateLimitAuthLimitEnvVar      = "RATE_LIMIT_AUTH"
 	rateLimitLoginLimitEnvVar     = "RATE_LIMIT_LOGIN"
+	rateLimitCommonLimitEnvVar    = "RATE_LIMIT_COMMON"
 	rateLimitWindowSecsEnvVar     = "RATE_LIMIT_WINDOW_SECS"
 	rateLimitExemptedIPsEnvVar    = "RATE_LIMIT_EXEMPTED_IPS"
 )
@@ -67,6 +68,7 @@ func main() {
 		rateLimitToken          = os.Getenv(rateLimitTokenLimitEnvVar)
 		rateLimitAuth           = os.Getenv(rateLimitAuthLimitEnvVar)
 		rateLimitLogin          = os.Getenv(rateLimitLoginLimitEnvVar)
+		rateLimitCommon         = os.Getenv(rateLimitCommonLimitEnvVar)
 		rateLimitWindowSecs     = os.Getenv(rateLimitWindowSecsEnvVar)
 		rateLimitExemptedIPs    = os.Getenv(rateLimitExemptedIPsEnvVar)
 	)
@@ -134,6 +136,7 @@ func main() {
 		rateLimitToken,
 		rateLimitAuth,
 		rateLimitLogin,
+		rateLimitCommon,
 		rateLimitWindowSecs,
 		rateLimitExemptedIPs,
 	)
@@ -166,6 +169,7 @@ func parseRateLimitConfig(
 	tokenLimit string,
 	authLimit string,
 	loginLimit string,
+	commonLimit string,
 	windowSecs string,
 	exemptedIPs string,
 ) config.ServerRateLimitingConfig {
@@ -174,6 +178,7 @@ func parseRateLimitConfig(
 		TokenLimit:   60,
 		AuthLimit:    100,
 		LoginLimit:   5,
+		CommonLimit:  75,
 		WindowInSecs: 60,
 		ExemptedIPs:  []string{},
 	}
@@ -194,6 +199,10 @@ func parseRateLimitConfig(
 
 	if val, err := strconv.Atoi(loginLimit); err == nil && val > 0 {
 		config.LoginLimit = val
+	}
+
+	if val, err := strconv.Atoi(commonLimit); err == nil && val > 0 {
+		config.CommonLimit = val
 	}
 
 	if val, err := strconv.Atoi(windowSecs); err == nil && val > 0 {

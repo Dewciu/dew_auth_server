@@ -7,9 +7,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/dewciu/dew_auth_server/server/cacherepositories"
 	"github.com/dewciu/dew_auth_server/server/config"
-	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/dewciu/dew_auth_server/server/controllers"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/middleware"
@@ -40,22 +38,24 @@ type ServerConfig struct {
 }
 
 type OAuthServer struct {
-	database           *gorm.DB
-	router             *gin.Engine
-	tlsPaths           TLSPaths
-	sessionStore       sessions.Store
-	redisClient        *redis.Client
-	rateLimitingConfig config.ServerRateLimitingConfig
+	database            *gorm.DB
+	router              *gin.Engine
+	tlsPaths            TLSPaths
+	sessionStore        sessions.Store
+	redisClient         *redis.Client
+	rateLimitingEnabled bool
+	rateLimiters        map[string]*config.RateLimiterConfig
 }
 
-func NewOAuthServer(config *ServerConfig) OAuthServer {
+func NewOAuthServer(cfg *ServerConfig) OAuthServer {
 	return OAuthServer{
-		database:           config.Database,
-		router:             config.Router,
-		tlsPaths:           config.TLSPaths,
-		sessionStore:       config.SessionStore,
-		redisClient:        config.RedisClient,
-		rateLimitingConfig: config.RateLimiting,
+		database:            cfg.Database,
+		router:              cfg.Router,
+		tlsPaths:            cfg.TLSPaths,
+		sessionStore:        cfg.SessionStore,
+		redisClient:         cfg.RedisClient,
+		rateLimitingEnabled: cfg.RateLimiting.Enabled,
+		rateLimiters:        config.GetRateLimiters(cfg.RateLimiting, cfg.RedisClient),
 	}
 }
 
@@ -130,57 +130,6 @@ func (s *OAuthServer) setMiddleware() {
 
 }
 
-func (s *OAuthServer) getRateLimiters() map[string]*config.RateLimiterConfig {
-	window := time.Duration(s.rateLimitingConfig.WindowInSecs) * time.Second
-
-	tokenLimiter := &config.RateLimiterConfig{
-		Enabled:      s.rateLimitingConfig.Enabled,
-		Store:        cacherepositories.NewRedisStore(s.redisClient, "token"),
-		MaxRequests:  s.rateLimitingConfig.TokenLimit,
-		Window:       window,
-		LimiterType:  constants.RateLimitingTokenBased,
-		ExemptedIPs:  s.rateLimitingConfig.ExemptedIPs,
-		IncludeRoute: true,
-	}
-
-	authLimiter := &config.RateLimiterConfig{
-		Enabled:      s.rateLimitingConfig.Enabled,
-		Store:        cacherepositories.NewRedisStore(s.redisClient, "auth"),
-		MaxRequests:  s.rateLimitingConfig.AuthLimit,
-		Window:       window,
-		LimiterType:  constants.RateLimitingIpBased,
-		ExemptedIPs:  s.rateLimitingConfig.ExemptedIPs,
-		IncludeRoute: true,
-	}
-
-	userLimiter := &config.RateLimiterConfig{
-		Enabled:      s.rateLimitingConfig.Enabled,
-		Store:        cacherepositories.NewRedisStore(s.redisClient, "user"),
-		MaxRequests:  s.rateLimitingConfig.LoginLimit,
-		Window:       window,
-		LimiterType:  constants.RateLimitingIpBased,
-		ExemptedIPs:  s.rateLimitingConfig.ExemptedIPs,
-		IncludeRoute: true,
-	}
-
-	commonLimiter := &config.RateLimiterConfig{
-		Enabled:      s.rateLimitingConfig.Enabled,
-		Store:        cacherepositories.NewRedisStore(s.redisClient, "user"),
-		MaxRequests:  s.rateLimitingConfig.CommonLimit,
-		Window:       window,
-		LimiterType:  constants.RateLimitingIpBased,
-		ExemptedIPs:  s.rateLimitingConfig.ExemptedIPs,
-		IncludeRoute: true,
-	}
-
-	return map[string]*config.RateLimiterConfig{
-		"token":  tokenLimiter,
-		"auth":   authLimiter,
-		"user":   userLimiter,
-		"common": commonLimiter,
-	}
-}
-
 func (s *OAuthServer) setErrorHandlers() {
 	ginerr.RegisterErrorHandler(oautherrors.OAuthInternalServerErrorHandler)
 	ginerr.RegisterErrorHandler(oautherrors.OAuthInputValidationErrorHandler)
@@ -233,9 +182,8 @@ func (s *OAuthServer) setRoutes(
 func (s *OAuthServer) getUserGroup() *gin.RouterGroup {
 	handlers := []gin.HandlerFunc{}
 
-	if s.rateLimitingConfig.Enabled {
-		rateLimiters := s.getRateLimiters()
-		handlers = append(handlers, middleware.RateLimiter(rateLimiters["user"]))
+	if s.rateLimitingEnabled {
+		handlers = append(handlers, middleware.RateLimiter(s.rateLimiters["user"]))
 	}
 
 	loginGroup := s.router.Group("", handlers...)
@@ -246,9 +194,8 @@ func (s *OAuthServer) getUserGroup() *gin.RouterGroup {
 func (s *OAuthServer) getAuthGroup() *gin.RouterGroup {
 	handlers := []gin.HandlerFunc{}
 
-	if s.rateLimitingConfig.Enabled {
-		rateLimiters := s.getRateLimiters()
-		handlers = append(handlers, middleware.RateLimiter(rateLimiters["auth"]))
+	if s.rateLimitingEnabled {
+		handlers = append(handlers, middleware.RateLimiter(s.rateLimiters["auth"]))
 	}
 
 	handlers = append(handlers, middleware.SessionValidate(AllEndpoints.OAuth2Login))
@@ -263,9 +210,8 @@ func (s *OAuthServer) getTokenGroup(
 ) *gin.RouterGroup {
 	handlers := []gin.HandlerFunc{}
 
-	if s.rateLimitingConfig.Enabled {
-		rateLimiters := s.getRateLimiters()
-		handlers = append(handlers, middleware.RateLimiter(rateLimiters["token"]))
+	if s.rateLimitingEnabled {
+		handlers = append(handlers, middleware.RateLimiter(s.rateLimiters["token"]))
 	}
 
 	handlers = append(handlers, middleware.AuthorizeClient(services.ClientService))
@@ -278,9 +224,8 @@ func (s *OAuthServer) getTokenGroup(
 func (s *OAuthServer) getCommonGroup() *gin.RouterGroup {
 	handlers := []gin.HandlerFunc{}
 
-	if s.rateLimitingConfig.Enabled {
-		rateLimiters := s.getRateLimiters()
-		handlers = append(handlers, middleware.RateLimiter(rateLimiters["common"]))
+	if s.rateLimitingEnabled {
+		handlers = append(handlers, middleware.RateLimiter(s.rateLimiters["common"]))
 	}
 
 	tokenGroup := s.router.Group("", handlers...)
