@@ -15,4 +15,5 @@ const (
 	ErrUnsupportedGrantType    OAuthErrorType = "unsupported_grant_type"
 	ErrUnsupportedTokenType    OAuthErrorType = "unsupported_token_type"
 	ErrInvalidToken            OAuthErrorType = "invalid_token"
+	ErrTooManyRequests         OAuthErrorType = "too_many_requests"
 )
