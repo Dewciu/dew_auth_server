@@ -43,6 +43,12 @@ const (
 	rateLimitCommonLimitEnvVar    = "RATE_LIMIT_COMMON"
 	rateLimitWindowSecsEnvVar     = "RATE_LIMIT_WINDOW_SECS"
 	rateLimitExemptedIPsEnvVar    = "RATE_LIMIT_EXEMPTED_IPS"
+	corsAllowOriginsEnvVar        = "CORS_ALLOW_ORIGINS"
+	corsAllowMethodsEnvVar        = "CORS_ALLOW_METHODS"
+	corsAllowHeadersEnvVar        = "CORS_ALLOW_HEADERS"
+	corsExposeHeadersEnvVar       = "CORS_EXPOSE_HEADERS"
+	corsAllowCredentialsEnvVar    = "CORS_ALLOW_CREDENTIALS"
+	corsMaxAgeEnvVar              = "CORS_MAX_AGE"
 )
 
 func main() {
@@ -71,6 +77,12 @@ func main() {
 		rateLimitCommon         = os.Getenv(rateLimitCommonLimitEnvVar)
 		rateLimitWindowSecs     = os.Getenv(rateLimitWindowSecsEnvVar)
 		rateLimitExemptedIPs    = os.Getenv(rateLimitExemptedIPsEnvVar)
+		corsAllowOrigins        = os.Getenv(corsAllowOriginsEnvVar)
+		corsAllowMethods        = os.Getenv(corsAllowMethodsEnvVar)
+		corsAllowHeaders        = os.Getenv(corsAllowHeadersEnvVar)
+		corsExposeHeaders       = os.Getenv(corsExposeHeadersEnvVar)
+		corsAllowCredentials    = os.Getenv(corsAllowCredentialsEnvVar)
+		corsMaxAge              = os.Getenv(corsMaxAgeEnvVar)
 	)
 
 	router := gin.New()
@@ -141,6 +153,15 @@ func main() {
 		rateLimitExemptedIPs,
 	)
 
+	corsConfig := config.ParseCORSConfig(
+		corsAllowOrigins,
+		corsAllowMethods,
+		corsAllowHeaders,
+		corsExposeHeaders,
+		corsAllowCredentials,
+		corsMaxAge,
+	)
+
 	serverConfig := server.ServerConfig{
 		Database: db,
 		Router:   router,
@@ -151,6 +172,7 @@ func main() {
 		SessionStore: sessionStore,
 		RedisClient:  redisClient,
 		RateLimiting: rateConfig,
+		CORSConfig:   corsConfig,
 	}
 
 	oauthServer := server.NewOAuthServer(&serverConfig)

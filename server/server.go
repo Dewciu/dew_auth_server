@@ -35,6 +35,7 @@ type ServerConfig struct {
 	SessionStore sessions.Store
 	RedisClient  *redis.Client
 	RateLimiting config.ServerRateLimitingConfig
+	CORSConfig   *config.CORSConfig
 }
 
 type OAuthServer struct {
@@ -45,6 +46,7 @@ type OAuthServer struct {
 	redisClient         *redis.Client
 	rateLimitingEnabled bool
 	rateLimiters        map[string]*config.RateLimiterConfig
+	corsConfig          *config.CORSConfig
 }
 
 func NewOAuthServer(cfg *ServerConfig) OAuthServer {
@@ -56,6 +58,7 @@ func NewOAuthServer(cfg *ServerConfig) OAuthServer {
 		redisClient:         cfg.RedisClient,
 		rateLimitingEnabled: cfg.RateLimiting.Enabled,
 		rateLimiters:        config.GetRateLimiters(cfg.RateLimiting, cfg.RedisClient),
+		corsConfig:          cfg.CORSConfig,
 	}
 }
 
@@ -128,6 +131,14 @@ func (s *OAuthServer) setMiddleware() {
 	s.router.Use(gin.LoggerWithWriter(logrus.StandardLogger().Out))
 	s.router.Use(sessions.Sessions("session", s.sessionStore))
 
+	var corsConfig *config.CORSConfig
+	if s.corsConfig != nil {
+		corsConfig = s.corsConfig
+	} else {
+		corsConfig = config.DefaultCORSConfig()
+	}
+
+	s.router.Use(middleware.CORS(corsConfig))
 }
 
 func (s *OAuthServer) setErrorHandlers() {
