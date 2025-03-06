@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 
 	"github.com/dewciu/dew_auth_server/server"
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
@@ -142,8 +141,7 @@ func main() {
 		},
 	)
 
-	// Parse rate limiting configuration
-	rateConfig := parseRateLimitConfig(
+	rateConfig := config.ParseRateLimitConfig(
 		rateLimitingEnabled,
 		rateLimitToken,
 		rateLimitAuth,
@@ -184,58 +182,6 @@ func main() {
 
 	oauthServer.Configure(controllers, services)
 	oauthServer.Run(ctx, serveAddress)
-}
-
-func parseRateLimitConfig(
-	enabled string,
-	tokenLimit string,
-	authLimit string,
-	loginLimit string,
-	commonLimit string,
-	windowSecs string,
-	exemptedIPs string,
-) config.ServerRateLimitingConfig {
-	config := config.ServerRateLimitingConfig{
-		Enabled:      false,
-		TokenLimit:   60,
-		AuthLimit:    100,
-		LoginLimit:   5,
-		CommonLimit:  75,
-		WindowInSecs: 60,
-		ExemptedIPs:  []string{},
-	}
-
-	// Parse enabled flag
-	if enabled == "true" {
-		config.Enabled = true
-	}
-
-	// Parse limits
-	if val, err := strconv.Atoi(tokenLimit); err == nil && val > 0 {
-		config.TokenLimit = val
-	}
-
-	if val, err := strconv.Atoi(authLimit); err == nil && val > 0 {
-		config.AuthLimit = val
-	}
-
-	if val, err := strconv.Atoi(loginLimit); err == nil && val > 0 {
-		config.LoginLimit = val
-	}
-
-	if val, err := strconv.Atoi(commonLimit); err == nil && val > 0 {
-		config.CommonLimit = val
-	}
-
-	if val, err := strconv.Atoi(windowSecs); err == nil && val > 0 {
-		config.WindowInSecs = val
-	}
-
-	if exemptedIPs != "" {
-		config.ExemptedIPs = strings.Split(exemptedIPs, ",")
-	}
-
-	return config
 }
 
 func getControllers(templatePath string, services *services.Services) *controllers.Controllers {
