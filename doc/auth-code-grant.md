@@ -35,12 +35,12 @@ The Authorization Code grant is ideal for:
     |
 (B) Authorization Grant
     |
-+----|-----+ Client Identifier +---------------+
-| User-    | & Redirection URI | Authorization |
-| Agent    |-----------------→|   Server      |
-|          |<----------------|               |
-|          | (C) Authorization Code           |
-+-|---------+               +---------------+
++----|-----+ Client Identifier      +---------------+
+| User-    | & Redirection URI      | Authorization |
+| Agent    |----------------------->|   Server      |
+|          |<-----------------------|               |
+|          | (C) Authorization Code |               |
++-|---------+                       +---------------+
   |
   | (D) Authorization Code &
   |      Redirection URI
