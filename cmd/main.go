@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 
 	"github.com/dewciu/dew_auth_server/server"
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
@@ -43,6 +42,12 @@ const (
 	rateLimitCommonLimitEnvVar    = "RATE_LIMIT_COMMON"
 	rateLimitWindowSecsEnvVar     = "RATE_LIMIT_WINDOW_SECS"
 	rateLimitExemptedIPsEnvVar    = "RATE_LIMIT_EXEMPTED_IPS"
+	corsAllowOriginsEnvVar        = "CORS_ALLOW_ORIGINS"
+	corsAllowMethodsEnvVar        = "CORS_ALLOW_METHODS"
+	corsAllowHeadersEnvVar        = "CORS_ALLOW_HEADERS"
+	corsExposeHeadersEnvVar       = "CORS_EXPOSE_HEADERS"
+	corsAllowCredentialsEnvVar    = "CORS_ALLOW_CREDENTIALS"
+	corsMaxAgeEnvVar              = "CORS_MAX_AGE"
 )
 
 func main() {
@@ -71,6 +76,12 @@ func main() {
 		rateLimitCommon         = os.Getenv(rateLimitCommonLimitEnvVar)
 		rateLimitWindowSecs     = os.Getenv(rateLimitWindowSecsEnvVar)
 		rateLimitExemptedIPs    = os.Getenv(rateLimitExemptedIPsEnvVar)
+		corsAllowOrigins        = os.Getenv(corsAllowOriginsEnvVar)
+		corsAllowMethods        = os.Getenv(corsAllowMethodsEnvVar)
+		corsAllowHeaders        = os.Getenv(corsAllowHeadersEnvVar)
+		corsExposeHeaders       = os.Getenv(corsExposeHeadersEnvVar)
+		corsAllowCredentials    = os.Getenv(corsAllowCredentialsEnvVar)
+		corsMaxAge              = os.Getenv(corsMaxAgeEnvVar)
 	)
 
 	router := gin.New()
@@ -130,8 +141,7 @@ func main() {
 		},
 	)
 
-	// Parse rate limiting configuration
-	rateConfig := parseRateLimitConfig(
+	rateConfig := config.ParseRateLimitConfig(
 		rateLimitingEnabled,
 		rateLimitToken,
 		rateLimitAuth,
@@ -139,6 +149,15 @@ func main() {
 		rateLimitCommon,
 		rateLimitWindowSecs,
 		rateLimitExemptedIPs,
+	)
+
+	corsConfig := config.ParseCORSConfig(
+		corsAllowOrigins,
+		corsAllowMethods,
+		corsAllowHeaders,
+		corsExposeHeaders,
+		corsAllowCredentials,
+		corsMaxAge,
 	)
 
 	serverConfig := server.ServerConfig{
@@ -151,6 +170,7 @@ func main() {
 		SessionStore: sessionStore,
 		RedisClient:  redisClient,
 		RateLimiting: rateConfig,
+		CORSConfig:   corsConfig,
 	}
 
 	oauthServer := server.NewOAuthServer(&serverConfig)
@@ -162,58 +182,6 @@ func main() {
 
 	oauthServer.Configure(controllers, services)
 	oauthServer.Run(ctx, serveAddress)
-}
-
-func parseRateLimitConfig(
-	enabled string,
-	tokenLimit string,
-	authLimit string,
-	loginLimit string,
-	commonLimit string,
-	windowSecs string,
-	exemptedIPs string,
-) config.ServerRateLimitingConfig {
-	config := config.ServerRateLimitingConfig{
-		Enabled:      false,
-		TokenLimit:   60,
-		AuthLimit:    100,
-		LoginLimit:   5,
-		CommonLimit:  75,
-		WindowInSecs: 60,
-		ExemptedIPs:  []string{},
-	}
-
-	// Parse enabled flag
-	if enabled == "true" {
-		config.Enabled = true
-	}
-
-	// Parse limits
-	if val, err := strconv.Atoi(tokenLimit); err == nil && val > 0 {
-		config.TokenLimit = val
-	}
-
-	if val, err := strconv.Atoi(authLimit); err == nil && val > 0 {
-		config.AuthLimit = val
-	}
-
-	if val, err := strconv.Atoi(loginLimit); err == nil && val > 0 {
-		config.LoginLimit = val
-	}
-
-	if val, err := strconv.Atoi(commonLimit); err == nil && val > 0 {
-		config.CommonLimit = val
-	}
-
-	if val, err := strconv.Atoi(windowSecs); err == nil && val > 0 {
-		config.WindowInSecs = val
-	}
-
-	if exemptedIPs != "" {
-		config.ExemptedIPs = strings.Split(exemptedIPs, ",")
-	}
-
-	return config
 }
 
 func getControllers(templatePath string, services *services.Services) *controllers.Controllers {
