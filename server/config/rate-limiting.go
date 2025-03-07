@@ -9,16 +9,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type RateLimiterConfig struct {
-	Enabled      bool                           // Whether rate limiting is enabled
-	Store        cacherepositories.LimiterStore // Storage mechanism for rate counters
-	MaxRequests  int                            // Maximum number of requests allowed in the window
-	Window       time.Duration                  // Time window for rate limiting
-	LimiterType  string                         // Type of rate limiting to apply (ip, client, user, token)
-	ExemptedIPs  []string                       // List of IPs exempt from rate limiting
-	IncludeRoute bool                           // Whether to include the route in the rate limit key
-}
-
 type RateLimitingConfig struct {
 	Enabled     bool     `mapstructure:"enabled"`
 	TokenLimit  int      `mapstructure:"token_limit"`
@@ -36,6 +26,16 @@ func setDefaultRateLimitingConfig(v *viper.Viper) {
 	v.SetDefault(RateLimitLoginLimitKey, 5)
 	v.SetDefault(RateLimitCommonLimitKey, 75)
 	v.SetDefault(RateLimitWindowSecsKey, 60)
+}
+
+type RateLimiterConfig struct {
+	Enabled      bool                           // Whether rate limiting is enabled
+	Store        cacherepositories.LimiterStore // Storage mechanism for rate counters
+	MaxRequests  int                            // Maximum number of requests allowed in the window
+	Window       time.Duration                  // Time window for rate limiting
+	LimiterType  string                         // Type of rate limiting to apply (ip, client, user, token)
+	ExemptedIPs  []string                       // List of IPs exempt from rate limiting
+	IncludeRoute bool                           // Whether to include the route in the rate limit key
 }
 
 func GetRateLimiters(
