@@ -1,13 +1,12 @@
 package config
 
 import (
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
 	"github.com/dewciu/dew_auth_server/server/constants"
 	"github.com/redis/go-redis/v9"
+	"github.com/spf13/viper"
 )
 
 type RateLimiterConfig struct {
@@ -20,21 +19,30 @@ type RateLimiterConfig struct {
 	IncludeRoute bool                           // Whether to include the route in the rate limit key
 }
 
-type ServerRateLimitingConfig struct {
-	Enabled      bool
-	CommonLimit  int
-	TokenLimit   int
-	AuthLimit    int
-	LoginLimit   int
-	ExemptedIPs  []string
-	WindowInSecs int
+type RateLimitingConfig struct {
+	Enabled     bool     `mapstructure:"enabled"`
+	TokenLimit  int      `mapstructure:"token_limit"`
+	AuthLimit   int      `mapstructure:"auth_limit"`
+	LoginLimit  int      `mapstructure:"login_limit"`
+	CommonLimit int      `mapstructure:"common_limit"`
+	WindowSecs  int      `mapstructure:"window_secs"`
+	ExemptedIPs []string `mapstructure:"exempted_ips"`
+}
+
+func setDefaultRateLimitingConfig(v *viper.Viper) {
+	v.SetDefault(RateLimitEnabledKey, false)
+	v.SetDefault(RateLimitTokenLimitKey, 60)
+	v.SetDefault(RateLimitAuthLimitKey, 100)
+	v.SetDefault(RateLimitLoginLimitKey, 5)
+	v.SetDefault(RateLimitCommonLimitKey, 75)
+	v.SetDefault(RateLimitWindowSecsKey, 60)
 }
 
 func GetRateLimiters(
-	config ServerRateLimitingConfig,
+	config RateLimitingConfig,
 	redisClient *redis.Client,
 ) map[string]*RateLimiterConfig {
-	window := time.Duration(config.WindowInSecs) * time.Second
+	window := time.Duration(config.WindowSecs) * time.Second
 
 	tokenLimiter := &RateLimiterConfig{
 		Enabled:      config.Enabled,
@@ -82,56 +90,4 @@ func GetRateLimiters(
 		"user":   userLimiter,
 		"common": commonLimiter,
 	}
-}
-
-func ParseRateLimitConfig(
-	enabled string,
-	tokenLimit string,
-	authLimit string,
-	loginLimit string,
-	commonLimit string,
-	windowSecs string,
-	exemptedIPs string,
-) ServerRateLimitingConfig {
-	config := ServerRateLimitingConfig{
-		Enabled:      false,
-		TokenLimit:   60,
-		AuthLimit:    100,
-		LoginLimit:   5,
-		CommonLimit:  75,
-		WindowInSecs: 60,
-		ExemptedIPs:  []string{},
-	}
-
-	// Parse enabled flag
-	if enabled == "true" {
-		config.Enabled = true
-	}
-
-	// Parse limits
-	if val, err := strconv.Atoi(tokenLimit); err == nil && val > 0 {
-		config.TokenLimit = val
-	}
-
-	if val, err := strconv.Atoi(authLimit); err == nil && val > 0 {
-		config.AuthLimit = val
-	}
-
-	if val, err := strconv.Atoi(loginLimit); err == nil && val > 0 {
-		config.LoginLimit = val
-	}
-
-	if val, err := strconv.Atoi(commonLimit); err == nil && val > 0 {
-		config.CommonLimit = val
-	}
-
-	if val, err := strconv.Atoi(windowSecs); err == nil && val > 0 {
-		config.WindowInSecs = val
-	}
-
-	if exemptedIPs != "" {
-		config.ExemptedIPs = strings.Split(exemptedIPs, ",")
-	}
-
-	return config
 }

@@ -99,24 +99,9 @@ type Config struct {
 		RefreshTokenLifetime time.Duration `mapstructure:"refresh_token_lifetime"`
 	} `mapstructure:"oauth"`
 
-	RateLimit struct {
-		Enabled     bool     `mapstructure:"enabled"`
-		TokenLimit  int      `mapstructure:"token_limit"`
-		AuthLimit   int      `mapstructure:"auth_limit"`
-		LoginLimit  int      `mapstructure:"login_limit"`
-		CommonLimit int      `mapstructure:"common_limit"`
-		WindowSecs  int      `mapstructure:"window_secs"`
-		ExemptedIPs []string `mapstructure:"exempted_ips"`
-	} `mapstructure:"rate_limit"`
+	RateLimit RateLimitingConfig `mapstructure:"rate_limit"`
 
-	CORS struct {
-		AllowOrigins     []string `mapstructure:"allow_origins"`
-		AllowMethods     []string `mapstructure:"allow_methods"`
-		AllowHeaders     []string `mapstructure:"allow_headers"`
-		ExposeHeaders    []string `mapstructure:"expose_headers"`
-		AllowCredentials bool     `mapstructure:"allow_credentials"`
-		MaxAge           int      `mapstructure:"max_age"`
-	} `mapstructure:"cors"`
+	CORS CORSConfig `mapstructure:"cors"`
 
 	Logging struct {
 		Level      string `mapstructure:"level"`
@@ -183,20 +168,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault(OAuthRefreshTokenLifetimeKey, 30*24*time.Hour)
 
 	// Rate limiting defaults
-	v.SetDefault(RateLimitEnabledKey, false)
-	v.SetDefault(RateLimitTokenLimitKey, 60)
-	v.SetDefault(RateLimitAuthLimitKey, 100)
-	v.SetDefault(RateLimitLoginLimitKey, 5)
-	v.SetDefault(RateLimitCommonLimitKey, 75)
-	v.SetDefault(RateLimitWindowSecsKey, 60)
+	setDefaultRateLimitingConfig(v)
 
 	// CORS defaults
-	v.SetDefault(CORSAllowOriginsKey, []string{"*"})
-	v.SetDefault(CORSAllowMethodsKey, []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	v.SetDefault(CORSAllowHeadersKey, []string{"Origin", "Content-Type", "Accept", "Authorization"})
-	v.SetDefault(CORSExposeHeadersKey, []string{"Content-Length", "Content-Type"})
-	v.SetDefault(CORSAllowCredentialsKey, true)
-	v.SetDefault(CORSMaxAgeKey, 86400)
+	setDefaultCORSConfig(v)
 
 	// Logging defaults
 	v.SetDefault(LoggingLevelKey, "info")
