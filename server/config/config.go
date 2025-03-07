@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/spf13/viper"
 )
@@ -64,51 +63,14 @@ const (
 )
 
 type Config struct {
-	Server struct {
-		Host            string        `mapstructure:"host"`
-		Port            int           `mapstructure:"port"`
-		TLSCertPath     string        `mapstructure:"tls_cert_path"`
-		TLSKeyPath      string        `mapstructure:"tls_key_path"`
-		ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
-		TemplatePath    string        `mapstructure:"template_path"`
-	} `mapstructure:"server"`
-
-	Database struct {
-		URL                string        `mapstructure:"url"`
-		MaxOpenConnections int           `mapstructure:"max_open_connections"`
-		MaxIdleConnections int           `mapstructure:"max_idle_connections"`
-		ConnMaxLifetime    time.Duration `mapstructure:"conn_max_lifetime"`
-	} `mapstructure:"database"`
-
-	Redis struct {
-		Address            string `mapstructure:"address"`
-		MaxIdleConnections int    `mapstructure:"max_idle_connections"`
-		Password           string `mapstructure:"password"`
-		DB                 int    `mapstructure:"db"`
-	} `mapstructure:"redis"`
-
-	Session struct {
-		Lifetime      time.Duration `mapstructure:"lifetime"`
-		SigningKey    string        `mapstructure:"signing_key"`
-		EncryptionKey string        `mapstructure:"encryption_key"`
-	} `mapstructure:"session"`
-
-	OAuth struct {
-		AuthCodeLifetime     time.Duration `mapstructure:"auth_code_lifetime"`
-		AccessTokenLifetime  time.Duration `mapstructure:"access_token_lifetime"`
-		RefreshTokenLifetime time.Duration `mapstructure:"refresh_token_lifetime"`
-	} `mapstructure:"oauth"`
-
+	Server    ServerConfig       `mapstructure:"server"`
+	Database  DatabaseConfig     `mapstructure:"database"`
+	Redis     RedisConfig        `mapstructure:"redis"`
+	Session   SessionConfig      `mapstructure:"session"`
+	OAuth     OAuthConfig        `mapstructure:"oauth"`
 	RateLimit RateLimitingConfig `mapstructure:"rate_limit"`
-
-	CORS CORSConfig `mapstructure:"cors"`
-
-	Logging struct {
-		Level      string `mapstructure:"level"`
-		Format     string `mapstructure:"format"`
-		File       string `mapstructure:"file"`
-		EnableJSON bool   `mapstructure:"enable_json"`
-	} `mapstructure:"logging"`
+	CORS      CORSConfig         `mapstructure:"cors"`
+	Logging   LoggingConfig      `mapstructure:"logging"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {
@@ -144,39 +106,14 @@ func LoadConfig(configPath string) (*Config, error) {
 }
 
 func setDefaults(v *viper.Viper) {
-	// Server defaults
-	v.SetDefault(ServerHostKey, "0.0.0.0")
-	v.SetDefault(ServerPortKey, 8050)
-	v.SetDefault(ServerShutdownTimeoutKey, 10*time.Second)
-	v.SetDefault(ServerTemplatePathKey, "./server/controllers/templates")
-
-	// Database defaults
-	v.SetDefault(DatabaseMaxOpenConnectionsKey, 25)
-	v.SetDefault(DatabaseMaxIdleConnectionsKey, 5)
-	v.SetDefault(DatabaseConnMaxLifetimeKey, 5*time.Minute)
-
-	// Redis defaults
-	v.SetDefault(RedisMaxIdleConnectionsKey, 10)
-	v.SetDefault(RedisDBKey, 0)
-
-	// Session defaults
-	v.SetDefault(SessionLifetimeKey, 24*time.Hour)
-
-	// OAuth defaults
-	v.SetDefault(OAuthAuthCodeLifetimeKey, 10*time.Minute)
-	v.SetDefault(OAuthAccessTokenLifetimeKey, time.Hour)
-	v.SetDefault(OAuthRefreshTokenLifetimeKey, 30*24*time.Hour)
-
-	// Rate limiting defaults
+	setDefaultServerConfig(v)
+	setDefaultDatabaseConfig(v)
+	setDefaultRedisConfig(v)
+	setDefaultSessionConfig(v)
+	setDefaultOAuthConfig(v)
 	setDefaultRateLimitingConfig(v)
-
-	// CORS defaults
 	setDefaultCORSConfig(v)
-
-	// Logging defaults
-	v.SetDefault(LoggingLevelKey, "info")
-	v.SetDefault(LoggingFormatKey, "text")
-	v.SetDefault(LoggingEnableJSONKey, false)
+	setDefaultLoggingConfig(v)
 }
 
 func bindEnvVariables(v *viper.Viper) {
