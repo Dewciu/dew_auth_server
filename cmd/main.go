@@ -37,6 +37,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	config.ConfigureLogging(cfg.Logging)
+
 	router := gin.New()
 
 	db, err := gorm.Open(postgres.Open(cfg.Database.URL))
