@@ -34,8 +34,8 @@ type ServerConfig struct {
 	TLSPaths     TLSPaths
 	SessionStore sessions.Store
 	RedisClient  *redis.Client
-	RateLimiting config.ServerRateLimitingConfig
-	CORSConfig   *config.CORSConfig
+	RateLimiting config.RateLimitingConfig
+	CORSConfig   config.CORSConfig
 }
 
 type OAuthServer struct {
@@ -46,7 +46,7 @@ type OAuthServer struct {
 	redisClient         *redis.Client
 	rateLimitingEnabled bool
 	rateLimiters        map[string]*config.RateLimiterConfig
-	corsConfig          *config.CORSConfig
+	corsConfig          config.CORSConfig
 }
 
 func NewOAuthServer(cfg *ServerConfig) OAuthServer {
@@ -71,6 +71,7 @@ func (s *OAuthServer) Configure(
 		logrus.WithError(err).Fatalf("failed to migrate database: %v", err)
 	}
 
+	gin.SetMode(gin.ReleaseMode)
 	s.setMiddleware()
 	s.setErrorHandlers()
 	s.setRoutes(controllers, services)
@@ -130,15 +131,7 @@ func (s *OAuthServer) setMiddleware() {
 	s.router.Static("/oauth2/styles", "server/controllers/templates/styles")
 	s.router.Use(gin.LoggerWithWriter(logrus.StandardLogger().Out))
 	s.router.Use(sessions.Sessions("session", s.sessionStore))
-
-	var corsConfig *config.CORSConfig
-	if s.corsConfig != nil {
-		corsConfig = s.corsConfig
-	} else {
-		corsConfig = config.DefaultCORSConfig()
-	}
-
-	s.router.Use(middleware.CORS(corsConfig))
+	s.router.Use(middleware.CORS(s.corsConfig))
 }
 
 func (s *OAuthServer) setErrorHandlers() {

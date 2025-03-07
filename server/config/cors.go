@@ -1,66 +1,21 @@
 package config
 
-import (
-	"strconv"
-	"strings"
-)
+import "github.com/spf13/viper"
 
 type CORSConfig struct {
-	AllowOrigins     []string
-	AllowMethods     []string
-	AllowHeaders     []string
-	ExposeHeaders    []string
-	AllowCredentials bool
-	MaxAge           int
+	AllowOrigins     []string `mapstructure:"allow_origins"`
+	AllowMethods     []string `mapstructure:"allow_methods"`
+	AllowHeaders     []string `mapstructure:"allow_headers"`
+	ExposeHeaders    []string `mapstructure:"expose_headers"`
+	AllowCredentials bool     `mapstructure:"allow_credentials"`
+	MaxAge           int      `mapstructure:"max_age"`
 }
 
-// DefaultCORSConfig returns a default CORS configuration
-func DefaultCORSConfig() *CORSConfig {
-	return &CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
-		AllowCredentials: true,
-		MaxAge:           86400, // 24 hours
-	}
-}
-
-func ParseCORSConfig(
-	allowOrigins string,
-	allowMethods string,
-	allowHeaders string,
-	exposeHeaders string,
-	allowCredentials string,
-	maxAge string,
-) *CORSConfig {
-	corsConfig := DefaultCORSConfig()
-
-	if allowOrigins != "" {
-		corsConfig.AllowOrigins = strings.Split(allowOrigins, ",")
-	}
-
-	if allowMethods != "" {
-		corsConfig.AllowMethods = strings.Split(allowMethods, ",")
-	}
-
-	if allowHeaders != "" {
-		corsConfig.AllowHeaders = strings.Split(allowHeaders, ",")
-	}
-
-	if exposeHeaders != "" {
-		corsConfig.ExposeHeaders = strings.Split(exposeHeaders, ",")
-	}
-
-	if allowCredentials == "false" {
-		corsConfig.AllowCredentials = false
-	}
-
-	if maxAge != "" {
-		if val, err := strconv.Atoi(maxAge); err == nil && val >= 0 {
-			corsConfig.MaxAge = val
-		}
-	}
-
-	return corsConfig
+func setDefaultCORSConfig(v *viper.Viper) {
+	v.SetDefault(CORSAllowOriginsKey, []string{"*"})
+	v.SetDefault(CORSAllowMethodsKey, []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	v.SetDefault(CORSAllowHeadersKey, []string{"Origin", "Content-Type", "Accept", "Authorization"})
+	v.SetDefault(CORSExposeHeadersKey, []string{"Content-Length", "Content-Type"})
+	v.SetDefault(CORSAllowCredentialsKey, true)
+	v.SetDefault(CORSMaxAgeKey, 86400)
 }

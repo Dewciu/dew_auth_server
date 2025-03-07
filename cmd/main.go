@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"net/http"
-	"os"
 	"path"
-	"strconv"
 
 	"github.com/dewciu/dew_auth_server/server"
 	"github.com/dewciu/dew_auth_server/server/cacherepositories"
@@ -24,104 +23,50 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	serveAddressEnvVar            = "HTTP_SERVE_ADDRESS"
-	dbConnectionURLEnvVar         = "DATABASE_CONNECTION_URL"
-	templatePathEnvVar            = "TEMPLATE_PATH"
-	redisAddressEnvVar            = "REDIS_ADDRESS"
-	redisMaxIdleConnectionsEnvVar = "REDIS_MAX_IDLE_CONNECTIONS"
-	sessionLifetimeEnvVar         = "SESSION_LIFETIME"
-	sessionSigningKeyEnvVar       = "SESSION_SIGNING_KEY"
-	sessionEncriptionKeyEnvVar    = "SESSION_ENCRIPTION_KEY"
-	certPathEnvVar                = "TLS_CERT_PATH"
-	keyPathEnvVar                 = "TLS_KEY_PATH"
-	rateLimitingEnabledEnvVar     = "RATE_LIMITING_ENABLED"
-	rateLimitTokenLimitEnvVar     = "RATE_LIMIT_TOKEN"
-	rateLimitAuthLimitEnvVar      = "RATE_LIMIT_AUTH"
-	rateLimitLoginLimitEnvVar     = "RATE_LIMIT_LOGIN"
-	rateLimitCommonLimitEnvVar    = "RATE_LIMIT_COMMON"
-	rateLimitWindowSecsEnvVar     = "RATE_LIMIT_WINDOW_SECS"
-	rateLimitExemptedIPsEnvVar    = "RATE_LIMIT_EXEMPTED_IPS"
-	corsAllowOriginsEnvVar        = "CORS_ALLOW_ORIGINS"
-	corsAllowMethodsEnvVar        = "CORS_ALLOW_METHODS"
-	corsAllowHeadersEnvVar        = "CORS_ALLOW_HEADERS"
-	corsExposeHeadersEnvVar       = "CORS_EXPOSE_HEADERS"
-	corsAllowCredentialsEnvVar    = "CORS_ALLOW_CREDENTIALS"
-	corsMaxAgeEnvVar              = "CORS_MAX_AGE"
-)
-
 func main() {
 	_ = godotenv.Load(
 		path.Join("cmd", ".env"),
 	)
 
+	cfg, err := config.LoadConfig("")
+
+	if err != nil {
+		panic(err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var (
-		serveAddress            = os.Getenv(serveAddressEnvVar)
-		dbConnectionURL         = os.Getenv(dbConnectionURLEnvVar)
-		templatePath            = os.Getenv(templatePathEnvVar)
-		redisAddress            = os.Getenv(redisAddressEnvVar)
-		redisMaxIdleConnections = os.Getenv(redisMaxIdleConnectionsEnvVar)
-		sessionLifetime         = os.Getenv(sessionLifetimeEnvVar)
-		sessionSigningKey       = os.Getenv(sessionSigningKeyEnvVar)
-		sessionEncriptionKey    = os.Getenv(sessionEncriptionKeyEnvVar)
-		certPath                = os.Getenv(certPathEnvVar)
-		keyPath                 = os.Getenv(keyPathEnvVar)
-		rateLimitingEnabled     = os.Getenv(rateLimitingEnabledEnvVar)
-		rateLimitToken          = os.Getenv(rateLimitTokenLimitEnvVar)
-		rateLimitAuth           = os.Getenv(rateLimitAuthLimitEnvVar)
-		rateLimitLogin          = os.Getenv(rateLimitLoginLimitEnvVar)
-		rateLimitCommon         = os.Getenv(rateLimitCommonLimitEnvVar)
-		rateLimitWindowSecs     = os.Getenv(rateLimitWindowSecsEnvVar)
-		rateLimitExemptedIPs    = os.Getenv(rateLimitExemptedIPsEnvVar)
-		corsAllowOrigins        = os.Getenv(corsAllowOriginsEnvVar)
-		corsAllowMethods        = os.Getenv(corsAllowMethodsEnvVar)
-		corsAllowHeaders        = os.Getenv(corsAllowHeadersEnvVar)
-		corsExposeHeaders       = os.Getenv(corsExposeHeadersEnvVar)
-		corsAllowCredentials    = os.Getenv(corsAllowCredentialsEnvVar)
-		corsMaxAge              = os.Getenv(corsMaxAgeEnvVar)
-	)
+	config.ConfigureLogging(cfg.Logging)
 
 	router := gin.New()
 
-	db, err := gorm.Open(postgres.Open(dbConnectionURL))
+	db, err := gorm.Open(postgres.Open(cfg.Database.URL))
 	if err != nil {
 		logrus.WithError(err).Fatalf("failed to connect to database: %v", err)
 	}
 
-	maxIdleConnections, err := strconv.Atoi(redisMaxIdleConnections)
-	if err != nil {
-		logrus.WithError(err).Fatalf("failed to convert redisMaxIdleConnections to int: %v", err)
-	}
-
-	sessLifetime, err := strconv.Atoi(sessionLifetime)
-	if err != nil {
-		logrus.WithError(err).Fatalf("failed to convert sessionLifetime to int: %v", err)
-	}
-
-	signKey, err := hex.DecodeString(sessionSigningKey)
-	if err != nil {
-		logrus.WithError(err).Fatalf("failed to decode sessionSigning %s to bytes: %v", sessionSigningKey, err)
-	}
-
-	encKey, err := hex.DecodeString(sessionEncriptionKey)
-	if err != nil {
-		logrus.WithError(err).Fatalf("failed to decode sessionEncription %s to bytes: %v", sessionEncriptionKey, err)
-	}
-
 	redisClient := redis.NewClient(
 		&redis.Options{
-			Addr: redisAddress,
+			Addr: cfg.Redis.Address,
 		},
 	)
 	defer redisClient.Close()
 
+	signKey, err := hex.DecodeString(cfg.Session.SigningKey)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to decode sessionSigning %s to bytes: %v", cfg.Session.SigningKey, err)
+	}
+
+	encKey, err := hex.DecodeString(cfg.Session.EncryptionKey)
+	if err != nil {
+		logrus.WithError(err).Fatalf("failed to decode sessionEncription %s to bytes: %v", cfg.Session.EncryptionKey, err)
+	}
+
 	sessionStore, err := redisSessions.NewStore(
-		maxIdleConnections,
+		cfg.Redis.MaxIdleConnections,
 		"tcp",
-		redisAddress,
+		cfg.Redis.Address,
 		"",
 		signKey,
 		encKey,
@@ -134,54 +79,38 @@ func main() {
 	sessionStore.Options(
 		sessions.Options{
 			Path:     "/", // cookie path
-			MaxAge:   sessLifetime,
+			MaxAge:   int(cfg.Session.Lifetime),
 			HttpOnly: true,
 			Secure:   true, // set to true when using HTTPS
 			SameSite: http.SameSiteLaxMode,
 		},
 	)
 
-	rateConfig := config.ParseRateLimitConfig(
-		rateLimitingEnabled,
-		rateLimitToken,
-		rateLimitAuth,
-		rateLimitLogin,
-		rateLimitCommon,
-		rateLimitWindowSecs,
-		rateLimitExemptedIPs,
-	)
-
-	corsConfig := config.ParseCORSConfig(
-		corsAllowOrigins,
-		corsAllowMethods,
-		corsAllowHeaders,
-		corsExposeHeaders,
-		corsAllowCredentials,
-		corsMaxAge,
-	)
-
 	serverConfig := server.ServerConfig{
 		Database: db,
 		Router:   router,
 		TLSPaths: server.TLSPaths{
-			Cert: certPath,
-			Key:  keyPath,
+			Cert: cfg.Server.TLSCertPath,
+			Key:  cfg.Server.TLSKeyPath,
 		},
 		SessionStore: sessionStore,
 		RedisClient:  redisClient,
-		RateLimiting: rateConfig,
-		CORSConfig:   corsConfig,
+		RateLimiting: cfg.RateLimit,
+		CORSConfig:   cfg.CORS,
 	}
 
 	oauthServer := server.NewOAuthServer(&serverConfig)
 
 	repositories := getRepositories(db)
-	cacheRepositories := getCacheRepositories(redisClient)
+	cacheRepositories := getCacheRepositories(cfg, redisClient)
 	services := getServices(repositories, cacheRepositories)
-	controllers := getControllers(templatePath, services)
+	controllers := getControllers(cfg.Server.TemplatePath, services)
 
 	oauthServer.Configure(controllers, services)
-	oauthServer.Run(ctx, serveAddress)
+	oauthServer.Run(
+		ctx,
+		fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
+	)
 }
 
 func getControllers(templatePath string, services *services.Services) *controllers.Controllers {
@@ -280,40 +209,20 @@ func getRepositories(db *gorm.DB) *repositories.Repositories {
 	}
 }
 
-func getCacheRepositories(rdClient *redis.Client) *cacherepositories.CacheRepositories {
-	authCodeLifetime := os.Getenv("AUTH_CODE_LIFETIME")
-	accessTokenLifetime := os.Getenv("ACCESS_TOKEN_LIFETIME")
-	refreshTokenLifetime := os.Getenv("REFRESH_TOKEN_LIFETIME")
-
-	//TODO: Consider doing some external configuration
-	authCodeLifetimeInt, err := strconv.Atoi(authCodeLifetime)
-	if err != nil {
-		logrus.WithError(err).Fatalf("failed to convert authCodeLifetime to int: %v", err)
-	}
-
-	accessTokenLifetimeInt, err := strconv.Atoi(accessTokenLifetime)
-	if err != nil {
-		logrus.WithError(err).Fatalf("failed to convert accessTokenLifetime to int: %v", err)
-	}
-
-	refreshTokenLifetimeInt, err := strconv.Atoi(refreshTokenLifetime)
-	if err != nil {
-		logrus.WithError(err).Fatalf("failed to convert refreshTokenLifetime to int: %v", err)
-	}
-
+func getCacheRepositories(cfg *config.Config, rdClient *redis.Client) *cacherepositories.CacheRepositories {
 	authorizationCodeRepository := cacherepositories.NewAuthorizationCodeRepository(
 		rdClient,
-		authCodeLifetimeInt,
+		int(cfg.OAuth.AuthCodeLifetime),
 	)
 
 	accessTokenRepository := cacherepositories.NewAccessTokenRepository(
 		rdClient,
-		accessTokenLifetimeInt,
+		int(cfg.OAuth.AccessTokenLifetime),
 	)
 
 	refreshTokenRepository := cacherepositories.NewRefreshTokenRepository(
 		rdClient,
-		refreshTokenLifetimeInt,
+		int(cfg.OAuth.RefreshTokenLifetime),
 	)
 
 	return &cacherepositories.CacheRepositories{

@@ -12,11 +12,7 @@ import (
 )
 
 // CORS returns a middleware that handles CORS
-func CORS(cfg *config.CORSConfig) gin.HandlerFunc {
-	if cfg == nil {
-		cfg = config.DefaultCORSConfig()
-	}
-
+func CORS(cfg config.CORSConfig) gin.HandlerFunc {
 	allowOrigins := strings.Join(cfg.AllowOrigins, ",")
 	allowMethods := strings.Join(cfg.AllowMethods, ",")
 	allowHeaders := strings.Join(cfg.AllowHeaders, ",")
