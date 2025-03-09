@@ -27,12 +27,12 @@ func TestRemoveEmptyStrings(t *testing.T) {
 		{
 			name:     "All Empty Strings",
 			input:    []string{"", "", ""},
-			expected: []string{},
+			expected: []string(nil),
 		},
 		{
 			name:     "Empty Input",
 			input:    []string{},
-			expected: []string{},
+			expected: []string(nil),
 		},
 		{
 			name:     "Whitespace Strings",
