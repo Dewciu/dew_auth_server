@@ -59,6 +59,11 @@ func (s *AuthorizationCodeService) GenerateCodeWithPKCE(
 	codeChallenge string,
 	codeChallengeMethod string,
 ) (string, error) {
+
+	if client == nil {
+		return "", errors.New("client cannot be nil")
+	}
+
 	code, err := generateRandomUrlBase64EncString(32)
 	if err != nil {
 		return "", err
@@ -96,7 +101,7 @@ func (s *AuthorizationCodeService) ValidateCode(
 	}
 
 	codeDetails, err := s.authorizationCodeRepository.GetByCode(ctx, code)
-	if err != nil {
+	if err != nil || codeDetails == nil {
 		logrus.WithError(err).WithField("code", code).Error("Failed to retrieve authorization code")
 		return nil, serviceerrors.NewInvalidAuthorizationCodeError(code)
 	}
