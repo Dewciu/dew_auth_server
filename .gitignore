@@ -26,3 +26,5 @@ tmp
 .vscode
 
 certs
+
+postgres_data
