@@ -1,86 +1,112 @@
 package utils
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCredentialsFromBasicAuthHeader(t *testing.T) {
-	type want struct {
-		usr string // username
-		pwd string // password
-		err error
-	}
+	t.Parallel()
 
 	tests := []struct {
-		name            string
-		authHeaderValue string
-		want
+		name           string
+		authHeader     string
+		expectedUser   string
+		expectedPass   string
+		expectError    bool
+		expectedErrMsg string
 	}{
 		{
-			name:            "TestGetCredentialsFromBasicAuthHeader_EmptyHeader",
-			authHeaderValue: "",
-			want: want{
-				usr: "",
-				pwd: "",
-				err: errors.New("authorization header is empty"),
-			},
+			name:           "Valid Authorization Header",
+			authHeader:     "Basic dXNlcm5hbWU6cGFzc3dvcmQ=", // "username:password" in base64
+			expectedUser:   "username",
+			expectedPass:   "password",
+			expectError:    false,
+			expectedErrMsg: "",
 		},
 		{
-			name:            "TestGetCredentialsFromBasicAuthHeader_InvalidPrefix",
-			authHeaderValue: "test ",
-			want: want{
-				usr: "",
-				pwd: "",
-				err: errors.New("authorization header does not start with 'Basic '"),
-			},
+			name:           "Empty Authorization Header",
+			authHeader:     "",
+			expectedUser:   "",
+			expectedPass:   "",
+			expectError:    true,
+			expectedErrMsg: "authorization header is empty",
 		},
 		{
-			name:            "TestGetCredentialsFromBasicAuthHeader_InvalidCredentialsFormat",
-			authHeaderValue: "Basic dGVzdDt0ZXN0", // "test;test"
-			want: want{
-				usr: "",
-				pwd: "",
-				err: errors.New("authorization header contains invalid credentials format"),
-			},
+			name:           "Invalid Prefix",
+			authHeader:     "Bearer dXNlcm5hbWU6cGFzc3dvcmQ=",
+			expectedUser:   "",
+			expectedPass:   "",
+			expectError:    true,
+			expectedErrMsg: "authorization header does not start with 'Basic '",
 		},
 		{
-			name:            "TestGetCredentialsFromBasicAuthHeader_EmptyUsername",
-			authHeaderValue: "Basic OnRlc3Q=", // ":test"
-			want: want{
-				usr: "",
-				pwd: "",
-				err: errors.New("authorization header contains empty username or password"),
-			},
+			name:           "Invalid Base64",
+			authHeader:     "Basic invalid-base64!@#$",
+			expectedUser:   "",
+			expectedPass:   "",
+			expectError:    true,
+			expectedErrMsg: "illegal base64 data",
 		},
 		{
-			name:            "TestGetCredentialsFromBasicAuthHeader_EmptyPassword",
-			authHeaderValue: "Basic dGVzdDo=", // "test:"
-			want: want{
-				usr: "",
-				pwd: "",
-				err: errors.New("authorization header contains empty username or password"),
-			},
+			name:           "No Colon Separator",
+			authHeader:     "Basic dXNlcm5hbWVwYXNzd29yZA==", // "usernamepassword" in base64
+			expectedUser:   "",
+			expectedPass:   "",
+			expectError:    true,
+			expectedErrMsg: "authorization header contains invalid credentials format",
 		},
 		{
-			name:            "TestGetCredentialsFromBasicAuthHeader_ValidCredentials",
-			authHeaderValue: "Basic dGVzdDp0ZXN0", // "test:test"
-			want: want{
-				usr: "test",
-				pwd: "test",
-				err: nil,
-			},
+			name:           "Empty Username",
+			authHeader:     "Basic OnBhc3N3b3Jk", // ":password" in base64
+			expectedUser:   "",
+			expectedPass:   "",
+			expectError:    true,
+			expectedErrMsg: "authorization header contains empty username or password",
+		},
+		{
+			name:           "Empty Password",
+			authHeader:     "Basic dXNlcm5hbWU6", // "username:" in base64
+			expectedUser:   "",
+			expectedPass:   "",
+			expectError:    true,
+			expectedErrMsg: "authorization header contains empty username or password",
+		},
+		{
+			name:           "Special Characters In Credentials",
+			authHeader:     "Basic dXNlckAjJCU6cGFzc0AjJCU=", // "user@#$%:pass@#$%" in base64
+			expectedUser:   "user@#$%",
+			expectedPass:   "pass@#$%",
+			expectError:    false,
+			expectedErrMsg: "",
+		},
+		{
+			name:           "Unicode Characters In Credentials",
+			authHeader:     "Basic dXNlcsOhw6jDrzpwYXNzw6HDqMOv", // "useráèï:passáèï" in base64
+			expectedUser:   "useráèï",
+			expectedPass:   "passáèï",
+			expectError:    false,
+			expectedErrMsg: "",
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
-			usr, pwd, err := GetCredentialsFromBasicAuthHeader(tt.authHeaderValue)
-			assert.Equal(t, tt.want.usr, usr)
-			assert.Equal(t, tt.want.pwd, pwd)
-			assert.Equal(t, tt.want.err, err)
+			t.Parallel()
+			user, pass, err := GetCredentialsFromBasicAuthHeader(tt.authHeader)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedErrMsg)
+				assert.Empty(t, user)
+				assert.Empty(t, pass)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedUser, user)
+				assert.Equal(t, tt.expectedPass, pass)
+			}
 		})
 	}
 }
