@@ -35,9 +35,11 @@ func (s *UserService) RegisterUser(
 ) error {
 	user, err := s.userRepository.GetWithEmailOrUsername(ctx, userInput.Email, userInput.Username)
 	if err != nil {
-		errMsg := "could not get user from database"
-		logrus.WithError(err).Error(errMsg)
-		return errors.New(errMsg)
+		if !errors.As(err, &repositories.RecordNotFoundError[models.User]{}) {
+			errMsg := "could not get user from database"
+			logrus.WithError(err).Error(errMsg)
+			return errors.New(errMsg)
+		}
 	}
 
 	if user != nil {
