@@ -229,7 +229,7 @@ func (h *GrantService) ObtainByClientCredentials(ctx context.Context, input inpu
 		ctx,
 		client,
 		client.ID.String(), // Use client ID as user ID since client is acting on its own behalf
-		client.Scopes,
+		input.Scopes,
 		64,
 	)
 
