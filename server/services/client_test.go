@@ -77,6 +77,7 @@ func (m *MockClientRegisterInput) GetScopes() string {
 }
 
 func TestVerifyClient_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)
@@ -106,6 +107,7 @@ func TestVerifyClient_Success(t *testing.T) {
 }
 
 func TestVerifyClient_ClientNotFound(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)
@@ -127,6 +129,7 @@ func TestVerifyClient_ClientNotFound(t *testing.T) {
 }
 
 func TestVerifyClient_InvalidSecret(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)
@@ -158,6 +161,7 @@ func TestVerifyClient_InvalidSecret(t *testing.T) {
 }
 
 func TestCheckIfClientExistsByID_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)
@@ -181,6 +185,7 @@ func TestCheckIfClientExistsByID_Success(t *testing.T) {
 }
 
 func TestCheckIfClientExistsByID_NotFound(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)
@@ -201,6 +206,7 @@ func TestCheckIfClientExistsByID_NotFound(t *testing.T) {
 }
 
 func TestCheckIfClientExistsByName_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)
@@ -224,6 +230,7 @@ func TestCheckIfClientExistsByName_Success(t *testing.T) {
 }
 
 func TestCheckIfClientExistsByName_NotFound(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)
@@ -244,6 +251,7 @@ func TestCheckIfClientExistsByName_NotFound(t *testing.T) {
 }
 
 func TestRegisterClient_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)
@@ -279,6 +287,7 @@ func TestRegisterClient_Success(t *testing.T) {
 }
 
 func TestRegisterClient_DatabaseError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockClientRepository)

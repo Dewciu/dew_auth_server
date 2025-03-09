@@ -44,6 +44,7 @@ func (m *MockAccessTokenRepository) Update(ctx context.Context, tokenData *cache
 }
 
 func TestGenerateOpaqueToken_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockRepo := new(MockAccessTokenRepository)
 	accessTokenService := services.NewAccessTokenService(mockRepo)
@@ -58,6 +59,7 @@ func TestGenerateOpaqueToken_Success(t *testing.T) {
 }
 
 func TestGenerateOpaqueToken_InvalidLength(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockRepo := new(MockAccessTokenRepository)
 	accessTokenService := services.NewAccessTokenService(mockRepo)
@@ -72,6 +74,7 @@ func TestGenerateOpaqueToken_InvalidLength(t *testing.T) {
 }
 
 func TestCreateToken_NewToken(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -114,6 +117,7 @@ func TestCreateToken_NewToken(t *testing.T) {
 }
 
 func TestCreateToken_ExistingToken(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -153,6 +157,7 @@ func TestCreateToken_ExistingToken(t *testing.T) {
 }
 
 func TestCreateToken_RepositoryError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -181,6 +186,7 @@ func TestCreateToken_RepositoryError(t *testing.T) {
 }
 
 func TestCreateToken_CreationError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -213,6 +219,7 @@ func TestCreateToken_CreationError(t *testing.T) {
 }
 
 func TestGetTokenForUserClient_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -240,6 +247,7 @@ func TestGetTokenForUserClient_Success(t *testing.T) {
 }
 
 func TestGetTokenForUserClient_NoToken(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -261,6 +269,7 @@ func TestGetTokenForUserClient_NoToken(t *testing.T) {
 }
 
 func TestGetTokenForUserClient_MultipleTokens(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -285,6 +294,7 @@ func TestGetTokenForUserClient_MultipleTokens(t *testing.T) {
 }
 
 func TestGetTokenForUserClient_RepositoryError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -307,6 +317,7 @@ func TestGetTokenForUserClient_RepositoryError(t *testing.T) {
 }
 
 func TestGetTokenDetails_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -330,6 +341,7 @@ func TestGetTokenDetails_Success(t *testing.T) {
 }
 
 func TestGetTokenDetails_NotFound(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -350,6 +362,7 @@ func TestGetTokenDetails_NotFound(t *testing.T) {
 }
 
 func TestRevokeToken_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)
@@ -371,6 +384,7 @@ func TestRevokeToken_Success(t *testing.T) {
 }
 
 func TestRevokeToken_Error(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAccessTokenRepository)

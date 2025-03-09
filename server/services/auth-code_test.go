@@ -36,6 +36,7 @@ func (m *MockAuthorizationCodeRepository) GetByCode(ctx context.Context, code st
 }
 
 func TestGenerateCodeWithPKCE_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -74,6 +75,7 @@ func TestGenerateCodeWithPKCE_Success(t *testing.T) {
 }
 
 func TestGenerateCodeWithPKCE_RepositoryError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -103,6 +105,7 @@ func TestGenerateCodeWithPKCE_RepositoryError(t *testing.T) {
 }
 
 func TestValidateCode_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -135,6 +138,7 @@ func TestValidateCode_Success(t *testing.T) {
 }
 
 func TestValidateCode_EmptyCode(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -152,6 +156,7 @@ func TestValidateCode_EmptyCode(t *testing.T) {
 }
 
 func TestValidateCode_RepositoryError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -174,6 +179,7 @@ func TestValidateCode_RepositoryError(t *testing.T) {
 }
 
 func TestValidateCode_RedirectURIMismatch(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -208,6 +214,7 @@ func TestValidateCode_RedirectURIMismatch(t *testing.T) {
 }
 
 func TestValidateCode_ClientIDMismatch(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -242,6 +249,7 @@ func TestValidateCode_ClientIDMismatch(t *testing.T) {
 }
 
 func TestValidatePKCE_S256Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	authCodeService := services.NewAuthorizationCodeService(nil) // Repository not needed for this test
 
@@ -261,6 +269,7 @@ func TestValidatePKCE_S256Success(t *testing.T) {
 }
 
 func TestValidatePKCE_PlainSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	authCodeService := services.NewAuthorizationCodeService(nil) // Repository not needed for this test
 
@@ -276,6 +285,7 @@ func TestValidatePKCE_PlainSuccess(t *testing.T) {
 }
 
 func TestValidatePKCE_S256Failure(t *testing.T) {
+	t.Parallel()
 	// Setup
 	authCodeService := services.NewAuthorizationCodeService(nil) // Repository not needed for this test
 
@@ -291,6 +301,7 @@ func TestValidatePKCE_S256Failure(t *testing.T) {
 }
 
 func TestValidatePKCE_PlainFailure(t *testing.T) {
+	t.Parallel()
 	// Setup
 	authCodeService := services.NewAuthorizationCodeService(nil) // Repository not needed for this test
 
@@ -306,6 +317,7 @@ func TestValidatePKCE_PlainFailure(t *testing.T) {
 }
 
 func TestValidatePKCE_UnsupportedMethod(t *testing.T) {
+	t.Parallel()
 	// Setup
 	authCodeService := services.NewAuthorizationCodeService(nil) // Repository not needed for this test
 
@@ -322,6 +334,7 @@ func TestValidatePKCE_UnsupportedMethod(t *testing.T) {
 }
 
 func TestValidatePKCE_EmptyVerifier(t *testing.T) {
+	t.Parallel()
 	// Setup
 	authCodeService := services.NewAuthorizationCodeService(nil) // Repository not needed for this test
 
@@ -334,6 +347,7 @@ func TestValidatePKCE_EmptyVerifier(t *testing.T) {
 }
 
 func TestGenerateCodeWithPKCE_NullParameters(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -363,6 +377,7 @@ func TestGenerateCodeWithPKCE_NullParameters(t *testing.T) {
 }
 
 func TestGenerateCodeWithPKCE_InvalidCodeChallenge(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)
@@ -395,6 +410,7 @@ func TestGenerateCodeWithPKCE_InvalidCodeChallenge(t *testing.T) {
 }
 
 func TestValidateCode_NilCode(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockAuthorizationCodeRepository)

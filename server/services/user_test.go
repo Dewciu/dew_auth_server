@@ -43,6 +43,7 @@ func (m *MockUserRepository) Create(ctx context.Context, user *models.User) erro
 }
 
 func TestRegisterUser_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockUserRepository)
@@ -78,6 +79,7 @@ func TestRegisterUser_Success(t *testing.T) {
 }
 
 func TestRegisterUser_UserAlreadyExists(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockUserRepository)
@@ -108,6 +110,7 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 }
 
 func TestRegisterUser_DatabaseError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockUserRepository)
@@ -132,6 +135,7 @@ func TestRegisterUser_DatabaseError(t *testing.T) {
 }
 
 func TestLoginUser_Success(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockUserRepository)
@@ -164,6 +168,7 @@ func TestLoginUser_Success(t *testing.T) {
 }
 
 func TestLoginUser_UserDoesNotExist(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockUserRepository)
@@ -188,6 +193,7 @@ func TestLoginUser_UserDoesNotExist(t *testing.T) {
 }
 
 func TestLoginUser_WrongPassword(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockUserRepository)
@@ -222,6 +228,7 @@ func TestLoginUser_WrongPassword(t *testing.T) {
 }
 
 func TestLoginUser_DatabaseError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	ctx := context.Background()
 	mockRepo := new(MockUserRepository)
