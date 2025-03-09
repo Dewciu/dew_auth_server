@@ -97,11 +97,11 @@ func (s *RefreshTokenService) CreateRefreshToken(
 
 func (s *RefreshTokenService) GetExistingRefreshToken(ctx context.Context, clientID string, userID string) (*cachemodels.RefreshToken, error) {
 	tokens, err := s.refreshTokenRepository.GetByUserAndClient(ctx, userID, clientID)
+	validTokens := make([]*cachemodels.RefreshToken, 0)
 
-	for index, token := range tokens {
-		if !token.IsActive() {
-			//Delete the token from the slice
-			tokens = append(tokens[:index], tokens[index+1:]...)
+	for _, token := range tokens {
+		if token.IsActive() {
+			validTokens = append(validTokens, token)
 		}
 	}
 
@@ -111,18 +111,18 @@ func (s *RefreshTokenService) GetExistingRefreshToken(ctx context.Context, clien
 		return nil, err
 	}
 
-	if len(tokens) == 0 {
+	if len(validTokens) == 0 {
 		logrus.Info("no valid refresh tokens found for user and client")
 		return nil, nil
 	}
 
-	if len(tokens) > 1 {
+	if len(validTokens) > 1 {
 		e := errors.New("multiple active refresh tokens found for user and client")
 		logrus.Error(e)
 		return nil, e
 	}
 
-	return tokens[0], nil
+	return validTokens[0], nil
 }
 
 func (s *RefreshTokenService) GetTokenDetails(ctx context.Context, token string) (*cachemodels.RefreshToken, error) {
