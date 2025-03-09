@@ -114,7 +114,7 @@ func (s *AccessTokenService) GetTokenForUserClient(ctx context.Context, clientID
 	if err != nil {
 		e := errors.New("failed to get access tokens by user and client index")
 		logrus.WithError(err).Error(e)
-		return nil, err
+		return nil, e
 	}
 
 	if len(tokens) == 0 {
