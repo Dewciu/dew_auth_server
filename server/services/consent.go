@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/dewciu/dew_auth_server/server/models"
@@ -61,9 +62,10 @@ func (s *ConsentService) GrantConsentForClientAndUser(ctx context.Context, clien
 		uuid.MustParse(userID),
 	)
 
-	if err != nil {
+	if err != nil && !errors.Is(err, repositories.NewRecordNotFoundError(models.Consent{})) {
+		e := errors.New("consent check error")
 		logrus.WithError(err).Error("Error while checking if consent exists")
-		return nil, err
+		return nil, e
 	}
 
 	if dbConsent != nil {
@@ -79,7 +81,7 @@ func (s *ConsentService) GrantConsentForClientAndUser(ctx context.Context, clien
 	}
 
 	if err := s.consentRepository.Create(ctx, consent); err != nil {
-		return nil, err
+		return nil, errors.New("consent creation error")
 	}
 
 	return consent, nil
