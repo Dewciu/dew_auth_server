@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"net/http"
 	"path"
@@ -24,11 +25,16 @@ import (
 )
 
 func main() {
+	var configPath string
+
+	flag.StringVar(&configPath, "config", "", "path to the configuration file")
+	flag.Parse()
+
 	_ = godotenv.Load(
 		path.Join("cmd", ".env"),
 	)
 
-	cfg, err := config.LoadConfig("")
+	cfg, err := config.LoadConfig(configPath)
 
 	if err != nil {
 		panic(err)
