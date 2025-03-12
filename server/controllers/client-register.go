@@ -18,11 +18,11 @@ type ClientRegisterController struct {
 }
 
 func NewRegisterController(
-	templatePath string,
+	template *template.Template,
 	clientService services.IClientService,
 ) ClientRegisterController {
 	return ClientRegisterController{
-		tmpl:          template.Must(template.ParseFiles(templatePath + "/register-client.html")),
+		tmpl:          template,
 		clientService: clientService,
 	}
 }

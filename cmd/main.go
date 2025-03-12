@@ -124,12 +124,16 @@ func getControllers(templatePath string, services *services.Services) *controlle
 	accessTokenController := controllers.NewAccessTokenController(
 		services.AuthorizationCodeGrantService,
 	)
+
+	clientRegisterTemplate := template.Must(template.ParseFiles(templatePath + "/register-client.html"))
 	clientRegisterController := controllers.NewRegisterController(
-		templatePath,
+		clientRegisterTemplate,
 		services.ClientService,
 	)
+
+	userRegisterTemplate := template.Must(template.ParseFiles(templatePath + "/register-user.html"))
 	userRegisterController := controllers.NewUserRegisterController(
-		templatePath,
+		userRegisterTemplate,
 		services.UserService,
 	)
 	authorizationController := controllers.NewAuthorizationController(

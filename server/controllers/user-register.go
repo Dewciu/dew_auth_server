@@ -17,11 +17,11 @@ type UserRegisterController struct {
 }
 
 func NewUserRegisterController(
-	templatePath string,
+	template *template.Template,
 	userService services.IUserService,
 ) UserRegisterController {
 	return UserRegisterController{
-		tmpl:        template.Must(template.ParseFiles(templatePath + "/register-user.html")),
+		tmpl:        template,
 		userService: userService,
 	}
 }
