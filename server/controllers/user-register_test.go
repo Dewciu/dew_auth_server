@@ -47,6 +47,7 @@ func setupUserRegisterRouter(userService *MockUserService) (*gin.Engine, *contro
 }
 
 func TestUserRegisterHandler_GetSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	router, _ := setupUserRegisterRouter(mockUserService)
@@ -64,6 +65,7 @@ func TestUserRegisterHandler_GetSuccess(t *testing.T) {
 }
 
 func TestUserRegisterHandler_PostSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	router, _ := setupUserRegisterRouter(mockUserService)
@@ -97,6 +99,7 @@ func TestUserRegisterHandler_PostSuccess(t *testing.T) {
 }
 
 func TestUserRegisterHandler_PostMissingUsername(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	router, _ := setupUserRegisterRouter(mockUserService)
@@ -122,6 +125,7 @@ func TestUserRegisterHandler_PostMissingUsername(t *testing.T) {
 }
 
 func TestUserRegisterHandler_PostMissingEmail(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	router, _ := setupUserRegisterRouter(mockUserService)
@@ -147,6 +151,7 @@ func TestUserRegisterHandler_PostMissingEmail(t *testing.T) {
 }
 
 func TestUserRegisterHandler_PostMissingPassword(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	router, _ := setupUserRegisterRouter(mockUserService)
@@ -172,6 +177,7 @@ func TestUserRegisterHandler_PostMissingPassword(t *testing.T) {
 }
 
 func TestUserRegisterHandler_PostUserAlreadyExists(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	router, _ := setupUserRegisterRouter(mockUserService)
@@ -202,6 +208,7 @@ func TestUserRegisterHandler_PostUserAlreadyExists(t *testing.T) {
 }
 
 func TestUserRegisterHandler_PostServiceError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	router, _ := setupUserRegisterRouter(mockUserService)

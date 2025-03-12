@@ -116,6 +116,7 @@ func setupClientRegisterRouter(clientService *MockClientService) (*gin.Engine, *
 }
 
 func TestClientRegisterHandler_GetSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockClientService := new(MockClientService)
 	router, _ := setupClientRegisterRouter(mockClientService)
@@ -133,6 +134,7 @@ func TestClientRegisterHandler_GetSuccess(t *testing.T) {
 }
 
 func TestClientRegisterHandler_PostSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockClientService := new(MockClientService)
 	router, _ := setupClientRegisterRouter(mockClientService)
@@ -181,6 +183,7 @@ func TestClientRegisterHandler_PostSuccess(t *testing.T) {
 }
 
 func TestClientRegisterHandler_PostMissingClientName(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockClientService := new(MockClientService)
 	router, _ := setupClientRegisterRouter(mockClientService)
@@ -206,6 +209,7 @@ func TestClientRegisterHandler_PostMissingClientName(t *testing.T) {
 }
 
 func TestClientRegisterHandler_PostMissingClientEmail(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockClientService := new(MockClientService)
 	router, _ := setupClientRegisterRouter(mockClientService)
@@ -231,6 +235,7 @@ func TestClientRegisterHandler_PostMissingClientEmail(t *testing.T) {
 }
 
 func TestClientRegisterHandler_PostMissingRedirectURI(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockClientService := new(MockClientService)
 	router, _ := setupClientRegisterRouter(mockClientService)
@@ -256,6 +261,7 @@ func TestClientRegisterHandler_PostMissingRedirectURI(t *testing.T) {
 }
 
 func TestClientRegisterHandler_PostRegistrationError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockClientService := new(MockClientService)
 	router, _ := setupClientRegisterRouter(mockClientService)
@@ -288,6 +294,7 @@ func TestClientRegisterHandler_PostRegistrationError(t *testing.T) {
 }
 
 func TestClientRegisterHandler_PostWithMultipleScopes(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockClientService := new(MockClientService)
 	router, _ := setupClientRegisterRouter(mockClientService)

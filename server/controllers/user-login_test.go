@@ -96,6 +96,7 @@ func setupUserLoginRouter(userService *MockUserService, consentService *MockCons
 }
 
 func TestUserLoginHandler_GetSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	mockConsentService := new(MockConsentService)
@@ -114,6 +115,7 @@ func TestUserLoginHandler_GetSuccess(t *testing.T) {
 }
 
 func TestUserLoginHandler_GetMissingRedirectURI(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	mockConsentService := new(MockConsentService)
@@ -132,6 +134,7 @@ func TestUserLoginHandler_GetMissingRedirectURI(t *testing.T) {
 }
 
 func TestUserLoginHandler_PostSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	mockConsentService := new(MockConsentService)
@@ -167,6 +170,7 @@ func TestUserLoginHandler_PostSuccess(t *testing.T) {
 }
 
 func TestUserLoginHandler_PostInvalidCredentials(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	mockConsentService := new(MockConsentService)
@@ -197,6 +201,7 @@ func TestUserLoginHandler_PostInvalidCredentials(t *testing.T) {
 }
 
 func TestUserLoginHandler_PostMissingEmail(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	mockConsentService := new(MockConsentService)
@@ -222,6 +227,7 @@ func TestUserLoginHandler_PostMissingEmail(t *testing.T) {
 }
 
 func TestUserLoginHandler_PostMissingPassword(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	mockConsentService := new(MockConsentService)
@@ -247,6 +253,7 @@ func TestUserLoginHandler_PostMissingPassword(t *testing.T) {
 }
 
 func TestUserLoginHandler_PostWithClientID(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockUserService := new(MockUserService)
 	mockConsentService := new(MockConsentService)
