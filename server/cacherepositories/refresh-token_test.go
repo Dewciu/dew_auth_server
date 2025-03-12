@@ -1,4 +1,4 @@
-package cacherepositories
+package cacherepositories_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dewciu/dew_auth_server/server/cachemodels"
+	"github.com/dewciu/dew_auth_server/server/cacherepositories"
 	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ func TestRefreshTokenRepository_Create(t *testing.T) {
 	// Setup
 	db, mock := redismock.NewClientMock()
 	ttl := 2592000 // 30 days in seconds
-	repo := NewRefreshTokenRepository(db, ttl)
+	repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 	ctx := context.Background()
 
 	// Test data
@@ -66,10 +67,11 @@ func TestRefreshTokenRepository_GetByToken(t *testing.T) {
 	t.Parallel()
 
 	t.Run("token exists", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data
@@ -110,10 +112,11 @@ func TestRefreshTokenRepository_GetByToken(t *testing.T) {
 	})
 
 	t.Run("token does not exist", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data
@@ -136,10 +139,11 @@ func TestRefreshTokenRepository_GetByToken(t *testing.T) {
 	})
 
 	t.Run("redis error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data
@@ -162,10 +166,11 @@ func TestRefreshTokenRepository_GetByToken(t *testing.T) {
 	})
 
 	t.Run("invalid expiration time", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data
@@ -197,10 +202,11 @@ func TestRefreshTokenRepository_GetByToken(t *testing.T) {
 	})
 
 	t.Run("invalid issued at time", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data
@@ -236,10 +242,11 @@ func TestRefreshTokenRepository_GetByUserAndClient(t *testing.T) {
 	t.Parallel()
 
 	t.Run("tokens exist", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data
@@ -287,10 +294,11 @@ func TestRefreshTokenRepository_GetByUserAndClient(t *testing.T) {
 	})
 
 	t.Run("no tokens found", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data
@@ -314,10 +322,11 @@ func TestRefreshTokenRepository_GetByUserAndClient(t *testing.T) {
 	})
 
 	t.Run("redis error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data
@@ -342,10 +351,11 @@ func TestRefreshTokenRepository_GetByUserAndClient(t *testing.T) {
 	})
 
 	t.Run("token retrieval error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 2592000 // 30 days in seconds
-		repo := NewRefreshTokenRepository(db, ttl)
+		repo := cacherepositories.NewRefreshTokenRepository(db, ttl)
 		ctx := context.Background()
 
 		// Test data

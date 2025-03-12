@@ -60,6 +60,7 @@ func TestAuthorizationCodeRepository_GetByCode(t *testing.T) {
 	t.Parallel()
 
 	t.Run("code exists", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 600 // 10 minutes
@@ -102,6 +103,7 @@ func TestAuthorizationCodeRepository_GetByCode(t *testing.T) {
 	})
 
 	t.Run("code does not exist", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 600 // 10 minutes
@@ -128,6 +130,7 @@ func TestAuthorizationCodeRepository_GetByCode(t *testing.T) {
 	})
 
 	t.Run("redis error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 600 // 10 minutes
@@ -154,6 +157,7 @@ func TestAuthorizationCodeRepository_GetByCode(t *testing.T) {
 	})
 
 	t.Run("missing required fields", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 600 // 10 minutes

@@ -19,12 +19,12 @@ type UserLoginController struct {
 }
 
 func NewUserLoginController(
-	templatePath string,
+	template *template.Template,
 	userService services.IUserService,
 	consentService services.IConsentService,
 ) UserLoginController {
 	return UserLoginController{
-		tmpl:           template.Must(template.ParseFiles(templatePath + "/login-user.html")),
+		tmpl:           template,
 		userService:    userService,
 		consentService: consentService,
 	}

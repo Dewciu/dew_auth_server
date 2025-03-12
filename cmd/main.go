@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"html/template"
 	"net/http"
 	"path"
 
@@ -137,8 +138,10 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		services.ClientService,
 		server.AllEndpoints.OAuth2Consent,
 	)
+
+	userLoginTemplate := template.Must(template.ParseFiles(templatePath + "/login-user.html"))
 	userLoginController := controllers.NewUserLoginController(
-		templatePath,
+		userLoginTemplate,
 		services.UserService,
 		services.ConsentService,
 	)

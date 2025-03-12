@@ -78,6 +78,7 @@ func TestAccessTokenRepository_GetByToken(t *testing.T) {
 	t.Parallel()
 
 	t.Run("token exists", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600
@@ -129,6 +130,7 @@ func TestAccessTokenRepository_GetByToken(t *testing.T) {
 	})
 
 	t.Run("token does not exist", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600
@@ -155,6 +157,7 @@ func TestAccessTokenRepository_GetByToken(t *testing.T) {
 	})
 
 	t.Run("redis error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600
@@ -185,6 +188,7 @@ func TestAccessTokenRepository_GetByUserAndClient(t *testing.T) {
 	t.Parallel()
 
 	t.Run("tokens exist", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600
@@ -240,6 +244,7 @@ func TestAccessTokenRepository_GetByUserAndClient(t *testing.T) {
 	})
 
 	t.Run("no tokens found", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600
@@ -267,6 +272,7 @@ func TestAccessTokenRepository_GetByUserAndClient(t *testing.T) {
 	})
 
 	t.Run("redis error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600
@@ -295,6 +301,7 @@ func TestAccessTokenRepository_GetByUserAndClient(t *testing.T) {
 	})
 
 	t.Run("token retrieval error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600
@@ -329,6 +336,7 @@ func TestAccessTokenRepository_Update(t *testing.T) {
 	t.Parallel()
 
 	t.Run("successful update", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600
@@ -359,6 +367,7 @@ func TestAccessTokenRepository_Update(t *testing.T) {
 	})
 
 	t.Run("redis error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		ttl := 3600

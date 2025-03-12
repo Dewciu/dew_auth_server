@@ -15,6 +15,7 @@ func TestRedisStore_Increment(t *testing.T) {
 	t.Parallel()
 
 	t.Run("first increment sets expiry", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		prefix := "ratelimit"
@@ -44,6 +45,7 @@ func TestRedisStore_Increment(t *testing.T) {
 	})
 
 	t.Run("subsequent increment doesn't set expiry", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		prefix := "ratelimit"
@@ -72,6 +74,7 @@ func TestRedisStore_Increment(t *testing.T) {
 	})
 
 	t.Run("increment error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		prefix := "ratelimit"
@@ -99,6 +102,7 @@ func TestRedisStore_Increment(t *testing.T) {
 	})
 
 	t.Run("expire error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		prefix := "ratelimit"
@@ -133,6 +137,7 @@ func TestRedisStore_Reset(t *testing.T) {
 	t.Parallel()
 
 	t.Run("successful reset", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		prefix := "ratelimit"
@@ -158,6 +163,7 @@ func TestRedisStore_Reset(t *testing.T) {
 	})
 
 	t.Run("reset error", func(t *testing.T) {
+		t.Parallel()
 		// Setup
 		db, mock := redismock.NewClientMock()
 		prefix := "ratelimit"
