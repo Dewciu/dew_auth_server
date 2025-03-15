@@ -55,6 +55,7 @@ func setupRevocationRouter(accessTokenService *MockAccessTokenService, refreshTo
 }
 
 func TestRevokeHandler_AccessTokenSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -102,6 +103,7 @@ func TestRevokeHandler_AccessTokenSuccess(t *testing.T) {
 }
 
 func TestRevokeHandler_AccessTokenInvalidOrExpired(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -140,6 +142,7 @@ func TestRevokeHandler_AccessTokenInvalidOrExpired(t *testing.T) {
 }
 
 func TestRevokeHandler_AccessTokenClientMismatch(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -188,6 +191,7 @@ func TestRevokeHandler_AccessTokenClientMismatch(t *testing.T) {
 }
 
 func TestRevokeHandler_AccessTokenRevocationError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -230,6 +234,7 @@ func TestRevokeHandler_AccessTokenRevocationError(t *testing.T) {
 }
 
 func TestRevokeHandler_RefreshTokenSuccess(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -277,6 +282,7 @@ func TestRevokeHandler_RefreshTokenSuccess(t *testing.T) {
 }
 
 func TestRevokeHandler_RefreshTokenInvalidOrExpired(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -315,6 +321,7 @@ func TestRevokeHandler_RefreshTokenInvalidOrExpired(t *testing.T) {
 }
 
 func TestRevokeHandler_RefreshTokenClientMismatch(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -363,6 +370,7 @@ func TestRevokeHandler_RefreshTokenClientMismatch(t *testing.T) {
 }
 
 func TestRevokeHandler_RefreshTokenRevocationError(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -405,6 +413,7 @@ func TestRevokeHandler_RefreshTokenRevocationError(t *testing.T) {
 }
 
 func TestRevokeHandler_UnsupportedTokenType(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -436,6 +445,7 @@ func TestRevokeHandler_UnsupportedTokenType(t *testing.T) {
 }
 
 func TestRevokeHandler_InvalidInput(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)

@@ -36,6 +36,10 @@ func SessionValidate(loginEndpoint string) gin.HandlerFunc {
 			appcontext.WithUserID(ctx, userID.(string)),
 		)
 
+		c.Request = c.Request.WithContext(
+			appcontext.WithSession(ctx, session),
+		)
+
 		c.Next()
 	}
 }

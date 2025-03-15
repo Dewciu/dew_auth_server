@@ -121,6 +121,7 @@ func setupIntrospectionRouter(accessTokenService *MockAccessTokenService, refres
 }
 
 func TestIntrospectHandler_AccessTokenActive(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -175,6 +176,7 @@ func TestIntrospectHandler_AccessTokenActive(t *testing.T) {
 }
 
 func TestIntrospectHandler_AccessTokenInactive(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -224,6 +226,7 @@ func TestIntrospectHandler_AccessTokenInactive(t *testing.T) {
 }
 
 func TestIntrospectHandler_AccessTokenNotFound(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -261,6 +264,7 @@ func TestIntrospectHandler_AccessTokenNotFound(t *testing.T) {
 }
 
 func TestIntrospectHandler_RefreshTokenActive(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -312,6 +316,7 @@ func TestIntrospectHandler_RefreshTokenActive(t *testing.T) {
 }
 
 func TestIntrospectHandler_RefreshTokenRevoked(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -362,6 +367,7 @@ func TestIntrospectHandler_RefreshTokenRevoked(t *testing.T) {
 }
 
 func TestIntrospectHandler_UnsupportedTokenType(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -391,6 +397,7 @@ func TestIntrospectHandler_UnsupportedTokenType(t *testing.T) {
 }
 
 func TestIntrospectHandler_InvalidInput(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)
@@ -419,6 +426,7 @@ func TestIntrospectHandler_InvalidInput(t *testing.T) {
 }
 
 func TestIntrospectHandler_ClientMismatch(t *testing.T) {
+	t.Parallel()
 	// Setup
 	mockAccessTokenService := new(MockAccessTokenService)
 	mockRefreshTokenService := new(MockRefreshTokenService)

@@ -7,9 +7,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/dewciu/dew_auth_server/server/appcontext"
 	"github.com/dewciu/dew_auth_server/server/controllers/oautherrors"
 	"github.com/dewciu/dew_auth_server/server/services"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -22,13 +22,13 @@ type ConsentController struct {
 }
 
 func NewConsentController(
-	templatePath string,
+	template *template.Template,
 	clientService services.IClientService,
 	consentService services.IConsentService,
 	authorizeEndpoint string,
 ) ConsentController {
 	return ConsentController{
-		tmpl:              template.Must(template.ParseFiles(templatePath + "/consent.html")),
+		tmpl:              template,
 		clientService:     clientService,
 		consentService:    consentService,
 		authorizeEndpoint: authorizeEndpoint,
@@ -36,7 +36,7 @@ func NewConsentController(
 }
 
 func (cc *ConsentController) ConsentHandler(c *gin.Context) {
-	session := sessions.Default(c)
+	session := appcontext.MustGetSession(c.Request.Context())
 	clientID := session.Get("client_id").(string)
 	authRedirectURI := session.Get("auth_redirect_uri").(string)
 	clientRedirectURI := session.Get("client_redirect_uri").(string)
@@ -121,7 +121,14 @@ func (cc *ConsentController) handlePost(
 
 	logrus.WithField("consent", consent).Debug("Consent decision received")
 
-	session := sessions.Default(c)
+	session, ok := appcontext.GetSession(c.Request.Context())
+
+	if !ok {
+		logrus.Error("Failed to get session from context")
+		cc.redirectWithError(c, clientRedirectURI, oautherrors.ErrServerError, "Internal server error")
+		return
+	}
+
 	userID := session.Get("user_id").(string)
 
 	if consent != "allow" {

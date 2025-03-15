@@ -150,8 +150,10 @@ func getControllers(templatePath string, services *services.Services) *controlle
 		services.ConsentService,
 	)
 	indexController := controllers.NewIndexController(templatePath)
+
+	consentTemplate := template.Must(template.ParseFiles(templatePath + "/consent.html"))
 	consentController := controllers.NewConsentController(
-		templatePath,
+		consentTemplate,
 		services.ClientService,
 		services.ConsentService,
 		server.AllEndpoints.OAuth2Authorize,
