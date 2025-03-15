@@ -28,3 +28,5 @@ tmp
 certs
 
 postgres_data
+
+__debug_bin*
