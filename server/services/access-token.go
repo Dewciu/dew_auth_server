@@ -62,17 +62,6 @@ func (s *AccessTokenService) CreateToken(
 	tokenLength int,
 ) (*cachemodels.AccessToken, error) {
 
-	existingAccessToken, err := s.GetTokenForUserClient(ctx, client.ID.String(), userID)
-	if err != nil {
-		e := errors.New("failed to get existing access token")
-		logrus.WithError(err).Error(e)
-		return nil, e
-	}
-
-	if existingAccessToken != nil {
-		return existingAccessToken, nil
-	}
-
 	token, err := s.GenerateOpaqueToken(tokenLength)
 	if err != nil {
 		e := errors.New("failed to generate access token")

@@ -169,11 +169,11 @@ func (s *OAuthServer) setRoutes(
 	userGroup.POST(AllEndpoints.Oauth2RegisterUser, controllers.UserRegisterController.RegisterHandler)
 	userGroup.GET(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
 	userGroup.POST(AllEndpoints.OAuth2Login, controllers.UserLoginController.LoginHandler)
+	userGroup.GET(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
+	userGroup.POST(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
 
 	authGroup := s.getAuthGroup()
 	authGroup.GET(AllEndpoints.OAuth2Authorize, controllers.AuthorizationController.Authorize)
-	authGroup.GET(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
-	authGroup.POST(AllEndpoints.OAuth2RegisterClient, controllers.ClientRegisterController.RegisterHandler)
 	authGroup.GET(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 	authGroup.POST(AllEndpoints.OAuth2Consent, controllers.ConsentController.ConsentHandler)
 

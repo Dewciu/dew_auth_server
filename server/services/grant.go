@@ -73,13 +73,27 @@ func (h *GrantService) ObtainByAuthCode(ctx context.Context, input inputs.Author
 		return nil, err
 	}
 
-	accessToken, err = h.accessTokenService.CreateToken(
-		ctx,
-		client,
-		codeDetails.UserID,
-		codeDetails.Scopes,
-		64,
-	)
+	// existingAccessToken, err := s.GetTokenForUserClient(ctx, client.ID.String(), userID)
+	// if err != nil {
+	// 	e := errors.New("failed to get existing access token")
+	// 	logrus.WithError(err).Error(e)
+	// 	return nil, e
+	// }
+
+	existingAccessToken, _ := h.accessTokenService.GetTokenForUserClient(ctx, client.ID.String(), codeDetails.UserID)
+
+	if existingAccessToken != nil {
+		accessToken = existingAccessToken
+	} else {
+		accessToken, err = h.accessTokenService.CreateToken(
+			ctx,
+			client,
+			codeDetails.UserID,
+			codeDetails.Scopes,
+			64,
+		)
+	}
+
 	if err != nil {
 		logrus.WithError(err).Debug("Access token creation failed")
 		return nil, err
@@ -225,18 +239,25 @@ func (h *GrantService) ObtainByClientCredentials(ctx context.Context, input inpu
 		return nil, e
 	}
 
-	accessToken, err := h.accessTokenService.CreateToken(
-		ctx,
-		client,
-		client.ID.String(), // Use client ID as user ID since client is acting on its own behalf
-		input.Scopes,
-		64,
-	)
+	existingAccessToken, _ := h.accessTokenService.GetTokenForUserClient(ctx, client.ID.String(), client.ID.String())
 
-	if err != nil {
-		e := errors.New("access token creation failed")
-		logrus.WithError(err).Error(e)
-		return nil, e
+	if existingAccessToken != nil {
+		accessToken = existingAccessToken
+	} else {
+		var err error
+		accessToken, err = h.accessTokenService.CreateToken(
+			ctx,
+			client,
+			client.ID.String(), // Use client ID as user ID since client is acting on its own behalf
+			input.Scopes,
+			64,
+		)
+
+		if err != nil {
+			e := errors.New("access token creation failed")
+			logrus.WithError(err).Error(e)
+			return nil, e
+		}
 	}
 
 	accessTokenOutput := outputs.AccessTokenOutput{

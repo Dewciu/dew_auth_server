@@ -41,6 +41,9 @@ func (s *ConsentService) ConsentForClientAndUserExists(ctx context.Context, clie
 	)
 
 	if err != nil {
+		if errors.Is(err, repositories.NewRecordNotFoundError(models.Consent{})) {
+			return false, nil
+		}
 		logrus.WithError(err).Error("Error while checking if consent exists")
 		return false, err
 	}

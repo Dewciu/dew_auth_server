@@ -49,7 +49,6 @@ func (ac *AuthorizationController) Authorize(c *gin.Context) {
 
 	session := sessions.Default(c)
 	userID := appcontext.MustGetUserID(ctx)
-
 	client, err := ac.clientService.CheckIfClientExistsByID(
 		c.Request.Context(),
 		authInput.GetClientID(),
