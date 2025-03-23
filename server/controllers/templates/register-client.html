@@ -68,7 +68,7 @@
             <p>Client Secret: <span>{{.ClientSecret}}</span></p>
         </div>
         {{end}}
-        <form method="POST" action="/register-client">
+        <form method="POST" action="/oauth2/register-client">
             <label for="client_name">Client Name</label>
             <input type="text" id="client_name" name="client_name" required />
 

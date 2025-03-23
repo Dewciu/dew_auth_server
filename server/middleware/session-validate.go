@@ -31,14 +31,10 @@ func SessionValidate(loginEndpoint string) gin.HandlerFunc {
 			return
 		}
 
-		ctx := c.Request.Context()
-		c.Request = c.Request.WithContext(
-			appcontext.WithUserID(ctx, userID.(string)),
-		)
-
-		c.Request = c.Request.WithContext(
-			appcontext.WithSession(ctx, session),
-		)
+		ctx := appcontext.WithUserID(c.Request.Context(), userID.(string))
+		ctx = appcontext.WithSession(ctx, session)
+		c.Request = c.Request.WithContext(ctx)
+		appcontext.MustGetUserID(ctx)
 
 		c.Next()
 	}
