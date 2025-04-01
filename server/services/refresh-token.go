@@ -138,7 +138,7 @@ func (s *RefreshTokenService) GetTokenDetails(ctx context.Context, token string)
 
 func (s *RefreshTokenService) RevokeToken(ctx context.Context, token *cachemodels.RefreshToken) error {
 	token.Revoke()
-	if err := s.refreshTokenRepository.Create(ctx, token); err != nil {
+	if err := s.refreshTokenRepository.Update(ctx, token); err != nil {
 		return err
 	}
 

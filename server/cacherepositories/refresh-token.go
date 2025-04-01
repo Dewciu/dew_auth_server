@@ -18,6 +18,7 @@ type IRefreshTokenRepository interface {
 	Create(ctx context.Context, tokenData *cachemodels.RefreshToken) error
 	GetByToken(ctx context.Context, token string) (*cachemodels.RefreshToken, error)
 	GetByUserAndClient(ctx context.Context, userID string, clientID string) ([]*cachemodels.RefreshToken, error)
+	Update(ctx context.Context, tokenData *cachemodels.RefreshToken) error
 }
 
 type RefreshTokenRepository struct {
@@ -96,6 +97,13 @@ func (r *RefreshTokenRepository) GetByToken(ctx context.Context, token string) (
 		return nil, e
 	}
 
+	revoked, err := strconv.ParseBool(data["revoked"])
+	if err != nil {
+		e := errors.New("failed to parse revoked status")
+		logrus.WithError(err).Error(e)
+		return nil, e
+	}
+
 	RefreshToken := &cachemodels.RefreshToken{
 		Token:     token,
 		Scopes:    data["scopes"],
@@ -103,6 +111,7 @@ func (r *RefreshTokenRepository) GetByToken(ctx context.Context, token string) (
 		UserID:    data["userID"],
 		ExpiresIn: exp,
 		IssuedAt:  iss,
+		Revoked:   revoked,
 	}
 
 	return RefreshToken, nil

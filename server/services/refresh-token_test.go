@@ -39,6 +39,10 @@ func (m *MockRefreshTokenRepository) GetByUserAndClient(ctx context.Context, use
 	return args.Get(0).([]*cachemodels.RefreshToken), args.Error(1)
 }
 
+func (m *MockRefreshTokenRepository) Update(ctx context.Context, tokenData *cachemodels.RefreshToken) error {
+	return nil
+}
+
 func TestGenerateOpaqueToken(t *testing.T) {
 	t.Parallel()
 	mockRepo := new(MockRefreshTokenRepository)

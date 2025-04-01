@@ -148,6 +148,12 @@ func (h *GrantService) ObtainByRefreshToken(ctx context.Context, input inputs.Re
 		return nil, err
 	}
 
+	if refreshTokenDetails.Revoked {
+		e := serviceerrors.NewTokenNotFoundError(input.RefreshToken)
+		logrus.Debug(e)
+		return nil, e
+	}
+
 	if refreshTokenDetails.ClientID != client.ID.String() {
 		e := serviceerrors.NewClientAuthorizationError(client.ID.String(), "refresh token client mismatch")
 		logrus.Debug(e)
