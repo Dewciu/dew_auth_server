@@ -71,7 +71,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:latest
+        image: postgres
         env:
           POSTGRES_USER: dew_auth
           POSTGRES_PASSWORD: dew_auth_password
