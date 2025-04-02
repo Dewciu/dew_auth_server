@@ -95,23 +95,11 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout QE repository
-        uses: actions/checkout@v4
-        with:
-          repository: Dewciu/dew_auth_server_qe
-          path: ./dew_auth_server_qe
-          token: ${{ secrets.PAT_TOKEN }}
-      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
           check-latest: true
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
       
       - name: Install Go dependencies
         run: go mod download
@@ -133,6 +121,18 @@ jobs:
           DEW_AUTH_SERVER_TLS_KEY_PATH: ./certs/key.pem
           DEW_AUTH_SESSION_SIGNING_KEY: 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
           DEW_AUTH_SESSION_ENCRYPTION_KEY: FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210
+          
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'         
+          
+      - name: Checkout QE repository
+        uses: actions/checkout@v4
+        with:
+          repository: Dewciu/dew_auth_server_qe
+          path: ./dew_auth_server_qe
+          token: ${{ secrets.PAT_TOKEN }}
       
       - name: Install QE test dependencies
         run: pip install -r requirements.txt
