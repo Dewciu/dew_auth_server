@@ -149,6 +149,7 @@ jobs:
       - name: Install QE test dependencies
         run: |
           cd dew_auth_server_qe
+          pip install -e .
           pip install -r requirements.txt
       
       - name: Run security and QE tests
