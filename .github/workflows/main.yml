@@ -140,7 +140,12 @@ jobs:
           repository: Dewciu/dew_auth_server_qe
           path: ./dew_auth_server_qe
           token: ${{ secrets.PAT_TOKEN }}
-          
+
+      - name: Change directory
+        run: |
+          cd dew_auth_server_qe
+          ls -al
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
