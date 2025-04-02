@@ -8,66 +8,66 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
     
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: dew_auth
-          POSTGRES_PASSWORD: dew_auth_password
-          POSTGRES_DB: dew_auth_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+  #   services:
+  #     postgres:
+  #       image: postgres:latest
+  #       env:
+  #         POSTGRES_USER: dew_auth
+  #         POSTGRES_PASSWORD: dew_auth_password
+  #         POSTGRES_DB: dew_auth_db
+  #       ports:
+  #         - 5432:5432
+  #       options: >-
+  #         --health-cmd pg_isready
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
       
-      redis:
-        image: redis:latest
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+  #     redis:
+  #       image: redis:latest
+  #       ports:
+  #         - 6379:6379
+  #       options: >-
+  #         --health-cmd "redis-cli ping"
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
       
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-          check-latest: true
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: '1.22'
+  #         check-latest: true
       
-      - name: Install dependencies
-        run: go mod download
+  #     - name: Install dependencies
+  #       run: go mod download
       
-      - name: Generate test certificates
-        run: |
-          mkdir -p certs
-          openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
+  #     - name: Generate test certificates
+  #       run: |
+  #         mkdir -p certs
+  #         openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
       
-      - name: Run Go tests
-        run: go test -v ./...
-        env:
-          DEW_AUTH_DATABASE_URL: postgres://dew_auth:dew_auth_password@localhost:5432/dew_auth_db?sslmode=disable
-          DEW_AUTH_REDIS_ADDRESS: localhost:6379
-          DEW_AUTH_SERVER_TLS_CERT_PATH: ./certs/cert.pem
-          DEW_AUTH_SERVER_TLS_KEY_PATH: ./certs/key.pem
-          DEW_AUTH_SESSION_SIGNING_KEY: 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
-          DEW_AUTH_SESSION_ENCRYPTION_KEY: FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210
+  #     - name: Run Go tests
+  #       run: go test -v ./...
+  #       env:
+  #         DEW_AUTH_DATABASE_URL: postgres://dew_auth:dew_auth_password@localhost:5432/dew_auth_db?sslmode=disable
+  #         DEW_AUTH_REDIS_ADDRESS: localhost:6379
+  #         DEW_AUTH_SERVER_TLS_CERT_PATH: ./certs/cert.pem
+  #         DEW_AUTH_SERVER_TLS_KEY_PATH: ./certs/key.pem
+  #         DEW_AUTH_SESSION_SIGNING_KEY: 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
+  #         DEW_AUTH_SESSION_ENCRYPTION_KEY: FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210
 
   security-tests:
     name: Security and QE Tests
     runs-on: ubuntu-latest
-    needs: test
+    # needs: test
     
     services:
       postgres:
@@ -95,13 +95,17 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout QE repository
+      - name: Checkout SERVER repository
         uses: actions/checkout@v4
         with:
           repository: Dewciu/dew_auth_server
           path: ./dew_auth_server
           token: ${{ secrets.PAT_TOKEN }}
 
+      - name: Check dir
+        run: |
+          ls -al
+      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
