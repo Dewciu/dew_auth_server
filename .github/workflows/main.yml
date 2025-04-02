@@ -95,7 +95,10 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout QE repository
+        uses: actions/checkout@v4
+        with:
+          repository: Dewciu/dew_auth_server_qe
       
       - name: Set up Go
         uses: actions/setup-go@v5
