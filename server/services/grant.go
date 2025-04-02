@@ -73,13 +73,6 @@ func (h *GrantService) ObtainByAuthCode(ctx context.Context, input inputs.Author
 		return nil, err
 	}
 
-	// existingAccessToken, err := s.GetTokenForUserClient(ctx, client.ID.String(), userID)
-	// if err != nil {
-	// 	e := errors.New("failed to get existing access token")
-	// 	logrus.WithError(err).Error(e)
-	// 	return nil, e
-	// }
-
 	existingAccessToken, _ := h.accessTokenService.GetTokenForUserClient(ctx, client.ID.String(), codeDetails.UserID)
 
 	if existingAccessToken != nil {

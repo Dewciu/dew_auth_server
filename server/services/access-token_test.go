@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/dewciu/dew_auth_server/server/cachemodels"
 	"github.com/dewciu/dew_auth_server/server/constants"
@@ -90,9 +89,6 @@ func TestCreateToken_NewToken(t *testing.T) {
 	scopes := "read write"
 	tokenLength := 32
 
-	// No existing token
-	mockRepo.On("GetByUserAndClient", ctx, userID, clientID.String()).Return([]*cachemodels.AccessToken{}, nil)
-
 	// Expect token creation
 	mockRepo.On("Create", ctx, mock.AnythingOfType("*cachemodels.AccessToken")).Run(func(args mock.Arguments) {
 		token := args.Get(1).(*cachemodels.AccessToken)
@@ -116,46 +112,6 @@ func TestCreateToken_NewToken(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestCreateToken_ExistingToken(t *testing.T) {
-	t.Parallel()
-	// Setup
-	ctx := context.Background()
-	mockRepo := new(MockAccessTokenRepository)
-	accessTokenService := services.NewAccessTokenService(mockRepo)
-
-	clientID := uuid.New()
-	client := &models.Client{
-		ID:   clientID,
-		Name: "Test Client",
-	}
-	userID := uuid.New().String()
-	scopes := "read write"
-	tokenLength := 32
-
-	// Create an existing token
-	existingToken := &cachemodels.AccessToken{
-		Token:     "existing-token",
-		Scopes:    scopes,
-		ClientID:  clientID.String(),
-		UserID:    userID,
-		TokenType: constants.TokenTypeBearer,
-		ExpiresIn: int(time.Now().Add(time.Hour).Unix()),
-		IssuedAt:  int(time.Now().Unix()),
-		NotBefore: int(time.Now().Unix()),
-	}
-
-	// Return the existing token
-	mockRepo.On("GetByUserAndClient", ctx, userID, clientID.String()).Return([]*cachemodels.AccessToken{existingToken}, nil)
-
-	// Execute
-	token, err := accessTokenService.CreateToken(ctx, client, userID, scopes, tokenLength)
-
-	// Verify
-	assert.NoError(t, err)
-	assert.Equal(t, existingToken, token)
-	mockRepo.AssertExpectations(t)
-}
-
 func TestCreateToken_RepositoryError(t *testing.T) {
 	t.Parallel()
 	// Setup
@@ -173,7 +129,7 @@ func TestCreateToken_RepositoryError(t *testing.T) {
 	tokenLength := 32
 
 	// Repository error on GetByUserAndClient
-	mockRepo.On("GetByUserAndClient", ctx, userID, clientID.String()).Return([]*cachemodels.AccessToken{}, errors.New("repository error"))
+	mockRepo.On("Create", ctx, userID, clientID.String()).Return([]*cachemodels.AccessToken{}, errors.New("repository error"))
 
 	// Execute
 	token, err := accessTokenService.CreateToken(ctx, client, userID, scopes, tokenLength)
@@ -201,9 +157,6 @@ func TestCreateToken_CreationError(t *testing.T) {
 	userID := uuid.New().String()
 	scopes := "read write"
 	tokenLength := 32
-
-	// No existing token
-	mockRepo.On("GetByUserAndClient", ctx, userID, clientID.String()).Return([]*cachemodels.AccessToken{}, nil)
 
 	// Error on creation
 	mockRepo.On("Create", ctx, mock.AnythingOfType("*cachemodels.AccessToken")).Return(errors.New("creation error"))

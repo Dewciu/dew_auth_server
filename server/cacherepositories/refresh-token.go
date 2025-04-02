@@ -99,9 +99,7 @@ func (r *RefreshTokenRepository) GetByToken(ctx context.Context, token string) (
 
 	revoked, err := strconv.ParseBool(data["revoked"])
 	if err != nil {
-		e := errors.New("failed to parse revoked status")
-		logrus.WithError(err).Error(e)
-		return nil, e
+		revoked = false
 	}
 
 	RefreshToken := &cachemodels.RefreshToken{

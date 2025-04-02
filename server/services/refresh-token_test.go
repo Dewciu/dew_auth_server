@@ -40,7 +40,8 @@ func (m *MockRefreshTokenRepository) GetByUserAndClient(ctx context.Context, use
 }
 
 func (m *MockRefreshTokenRepository) Update(ctx context.Context, tokenData *cachemodels.RefreshToken) error {
-	return nil
+	args := m.Called(ctx, tokenData)
+	return args.Error(0)
 }
 
 func TestGenerateOpaqueToken(t *testing.T) {
@@ -228,7 +229,7 @@ func TestRevokeToken(t *testing.T) {
 		}
 
 		// The token should be revoked when passed to Create
-		mockRepo.On("Create", ctx, mock.MatchedBy(func(t *cachemodels.RefreshToken) bool {
+		mockRepo.On("Update", ctx, mock.MatchedBy(func(t *cachemodels.RefreshToken) bool {
 			return t.Revoked == true
 		})).Return(nil).Once()
 
@@ -256,7 +257,7 @@ func TestRevokeToken(t *testing.T) {
 			Revoked:   false,
 		}
 
-		mockRepo.On("Create", ctx, mock.AnythingOfType("*cachemodels.RefreshToken")).
+		mockRepo.On("Update", ctx, mock.AnythingOfType("*cachemodels.RefreshToken")).
 			Return(errors.New("update error")).Once()
 
 		// Execute

@@ -147,6 +147,7 @@ func TestObtainByAuthCode_Success(t *testing.T) {
 	mockAuthCodeService.On("ValidateCode", ctx, input.Code, input.RedirectURI, clientID.String()).Return(authCode, nil)
 	mockAuthCodeService.On("ValidatePKCE", input.CodeVerifier, authCode.CodeChallenge, authCode.CodeChallengeMethod).Return(nil)
 	mockAccessTokenService.On("CreateToken", ctx, client, userID, authCode.Scopes, 64).Return(accessToken, nil)
+	mockAccessTokenService.On("GetTokenForUserClient", ctx, client.ID.String(), userID).Return(nil, nil)
 	mockRefreshTokenService.On("CreateRefreshToken", ctx, clientID.String(), userID, authCode.Scopes, 32).Return("test-refresh-token", nil)
 
 	// Call the method
@@ -432,6 +433,7 @@ func TestObtainByAuthCode_TokenCreationFails(t *testing.T) {
 	// Set up expectations
 	mockAuthCodeService.On("ValidateCode", ctx, input.Code, input.RedirectURI, clientID.String()).Return(authCode, nil)
 	mockAuthCodeService.On("ValidatePKCE", input.CodeVerifier, authCode.CodeChallenge, authCode.CodeChallengeMethod).Return(nil)
+	mockAccessTokenService.On("GetTokenForUserClient", ctx, client.ID.String(), userID).Return(nil, nil)
 	mockAccessTokenService.On("CreateToken", ctx, client, userID, authCode.Scopes, 64).
 		Return(nil, errors.New("token creation failed"))
 
@@ -930,6 +932,7 @@ func TestObtainByClientCredentials_Success(t *testing.T) {
 	}
 
 	// Set up expectations
+	mockAccessTokenService.On("GetTokenForUserClient", ctx, client.ID.String(), client.ID.String()).Return(nil, nil)
 	mockAccessTokenService.On("CreateToken", ctx, client, clientID.String(), input.Scopes, 64).Return(accessToken, nil)
 
 	// Call the method
@@ -992,6 +995,7 @@ func TestObtainByClientCredentials_WithRequestedScopes(t *testing.T) {
 	}
 
 	// Set up expectations
+	mockAccessTokenService.On("GetTokenForUserClient", ctx, client.ID.String(), client.ID.String()).Return(nil, nil)
 	mockAccessTokenService.On("CreateToken", ctx, client, clientID.String(), "read", 64).Return(accessToken, nil)
 
 	// Call the method
@@ -1134,6 +1138,7 @@ func TestObtainByClientCredentials_TokenCreationFails(t *testing.T) {
 	}
 
 	// Set up expectations
+	mockAccessTokenService.On("GetTokenForUserClient", ctx, client.ID.String(), client.ID.String()).Return(nil, nil)
 	mockAccessTokenService.On("CreateToken", ctx, client, clientID.String(), client.Scopes, 64).
 		Return(nil, errors.New("token creation failed"))
 

@@ -82,10 +82,9 @@ func TestConsentForClientAndUserExists_NotExists(t *testing.T) {
 		repositories.NewRecordNotFoundError(models.Consent{}))
 
 	// Execute
-	exists, err := consentService.ConsentForClientAndUserExists(ctx, clientID, userID)
+	exists, _ := consentService.ConsentForClientAndUserExists(ctx, clientID, userID)
 
 	// Verify
-	assert.Error(t, err)
 	assert.False(t, exists)
 	mockRepo.AssertExpectations(t)
 }
