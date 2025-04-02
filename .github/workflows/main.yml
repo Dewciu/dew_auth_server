@@ -119,7 +119,9 @@ jobs:
         run: |
           mkdir -p certs
           openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
-      
+      - name: Enable PostgreSQL UUID extension
+        run: |
+          PGPASSWORD=dew_auth_password psql -h localhost -U dew_auth -d dew_auth_db -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
       - name: Build and start Dew Auth Server
         run: |
           go build -o ./tmp/main ./cmd/main.go
