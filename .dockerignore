@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# IDE specific files
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+/certs/*
+/qe/*
+/tmp/*
+/postgres_data/*
+/docs/*
+/.github/*
+/terraform/*
+/aws/*
+
+# Test files
+*_test.go
+*_tests.go
+/tests
+coverage.txt
+qe_test_report.html
+
+# Build artifacts
+__debug_bin*
+
+# Terraform
+.terraform
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Environment
+.env
+*.env

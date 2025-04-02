@@ -1,0 +1,15 @@
+{
+    "server_url": "https://localhost:8050",
+    "verify_ssl": false,
+    "redirect_uri": "https://client.example.com/callback",
+    "test_username": "ci_testuser",
+    "test_password": "ci_testpassword",
+    "test_email": "ci_test@example.com",
+    "scope": "read write",
+    "request_timeout": 30,
+    "register_client_if_missing": true,
+    "token_length": 64,
+    "auth_code_expiry": 600,
+    "access_token_expiry": 3600,
+    "refresh_token_expiry": 86400
+}

@@ -102,6 +102,10 @@ jobs:
           path: .
           token: ${{ secrets.PAT_TOKEN }}
 
+      - name: Check dir
+        run: |
+          ls -al
+      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:

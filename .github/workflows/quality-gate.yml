@@ -1,0 +1,166 @@
+name: Quality Gate
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  code-analysis:
+    name: Code Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          args: --timeout=5m
+      
+      - name: Run gosec
+        uses: securego/gosec@master
+        with:
+          args: ./...
+      
+      - name: Run go vet
+        run: go vet ./...
+      
+      - name: Check formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "The following files need formatting:"
+            gofmt -l .
+            exit 1
+          fi
+  
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: dew_auth
+          POSTGRES_PASSWORD: dew_auth_password
+          POSTGRES_DB: dew_auth_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Generate test certificates
+        run: |
+          mkdir -p certs
+          openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
+      
+      - name: Run unit tests with coverage
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+        env:
+          DEW_AUTH_DATABASE_URL: postgres://dew_auth:dew_auth_password@localhost:5432/dew_auth_db?sslmode=disable
+          DEW_AUTH_REDIS_ADDRESS: localhost:6379
+          DEW_AUTH_SERVER_TLS_CERT_PATH: ./certs/cert.pem
+          DEW_AUTH_SERVER_TLS_KEY_PATH: ./certs/key.pem
+          DEW_AUTH_SESSION_SIGNING_KEY: 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
+          DEW_AUTH_SESSION_ENCRYPTION_KEY: FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.txt
+          fail_ci_if_error: false
+  
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/golang@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      
+      - name: Test build
+        run: go build -v ./cmd/main.go
+      
+      - name: Test Docker build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: dew-auth-server:test-build
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        with:
+          fail-on-severity: high
