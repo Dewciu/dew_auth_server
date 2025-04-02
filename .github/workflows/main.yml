@@ -146,13 +146,10 @@ jobs:
         with:
           python-version: '3.10'         
         
-      - name: Change directory
+      - name: Install QE test dependencies
         run: |
           cd dew_auth_server_qe
-          ls -al
-          
-      - name: Install QE test dependencies
-        run: pip install -r requirements.txt
+          pip install -r requirements.txt
       
       - name: Run security and QE tests
         run: |
