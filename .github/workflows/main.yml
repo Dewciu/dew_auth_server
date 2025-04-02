@@ -153,6 +153,7 @@ jobs:
       
       - name: Run security and QE tests
         run: |
+          cd dew_auth_server_qe
           dew-test --report=qe_test_report.html
         working-directory: ./
         env:
