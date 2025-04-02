@@ -153,7 +153,7 @@ jobs:
       
       - name: Run security and QE tests
         run: |
-          python -m pytest tests/auth_code_test.py tests/revocation_test.py -v --report=qe_test_report.html
+          dew-test --report=qe_test_report.html
         working-directory: ./
         env:
           DEW_TEST_SERVER_URL: https://localhost:8050
