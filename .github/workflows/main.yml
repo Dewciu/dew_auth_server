@@ -95,6 +95,9 @@ jobs:
           --health-retries 5
 
     steps:
+      - name: Check dir
+        run: |
+          ls -al
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
