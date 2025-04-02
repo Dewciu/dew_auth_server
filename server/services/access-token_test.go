@@ -128,8 +128,7 @@ func TestCreateToken_RepositoryError(t *testing.T) {
 	scopes := "read write"
 	tokenLength := 32
 
-	// Repository error on GetByUserAndClient
-	mockRepo.On("Create", ctx, userID, clientID.String()).Return([]*cachemodels.AccessToken{}, errors.New("repository error"))
+	mockRepo.On("Create", ctx, mock.AnythingOfType("*cachemodels.AccessToken")).Return(errors.New("repository error"))
 
 	// Execute
 	token, err := accessTokenService.CreateToken(ctx, client, userID, scopes, tokenLength)
@@ -137,7 +136,7 @@ func TestCreateToken_RepositoryError(t *testing.T) {
 	// Verify
 	assert.Error(t, err)
 	assert.Nil(t, token)
-	assert.Contains(t, err.Error(), "failed to get existing access token")
+	assert.Contains(t, err.Error(), "failed to create access token")
 	mockRepo.AssertExpectations(t)
 }
 
