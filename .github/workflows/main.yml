@@ -141,7 +141,7 @@ jobs:
           DEW_TEST_VERIFY_SSL: false
       
       - name: Upload QE test report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qe-test-report
           path: qe_test_report.html
